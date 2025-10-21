@@ -1,0 +1,63 @@
+{
+  "name": "ClassSchedule",
+  "type": "object",
+  "properties": {
+    "day_of_week": {
+      "type": "string",
+      "enum": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ],
+      "description": "Day of the week"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time (e.g., 10:00 AM)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time (e.g., 10:45 AM)"
+    },
+    "age_range": {
+      "type": "string",
+      "description": "Age range for the class (e.g., 3-5 years)"
+    },
+    "max_students": {
+      "type": "number",
+      "description": "Maximum number of students"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this class is currently offered"
+    }
+  },
+  "required": [
+    "day_of_week",
+    "start_time",
+    "end_time"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
