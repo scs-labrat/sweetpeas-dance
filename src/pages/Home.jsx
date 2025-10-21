@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Sparkles, Heart, Music, Star, Phone, Mail, MapPin, Clock, Calendar, Users, Send, CheckCircle } from "lucide-react";
@@ -8,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const FloatingFlower = ({ delay = 0, left, top, size = "w-8 h-8" }) => (
@@ -68,6 +70,40 @@ export default function Home() {
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.9]);
 
+  // Fetch data from entities
+  const { data: classSchedules = [] } = useQuery({
+    queryKey: ['classSchedules'],
+    queryFn: () => base44.entities.ClassSchedule.filter({ is_active: true }),
+    initialData: [],
+  });
+
+  const { data: pricing = [] } = useQuery({
+    queryKey: ['pricing'],
+    queryFn: () => base44.entities.Pricing.filter({ is_active: true }),
+    initialData: [],
+  });
+
+  const { data: studioInfo = [] } = useQuery({
+    queryKey: ['studioInfo'],
+    queryFn: () => base44.entities.StudioInfo.list(),
+    initialData: [],
+  });
+
+  const studio = studioInfo[0] || {
+    studio_name: 'Sweetpeas Dance Studio',
+    address_line1: '123 Blossom Lane',
+    address_line2: 'Your City, ST 12345',
+    description: 'Bright, welcoming studio with sprung floors and age-appropriate equipment',
+    phone: '(555) 123-4567',
+    email: 'hello@sweetpeas.dance',
+    hours: [
+      { day: 'Tuesday', hours: '9:30 AM - 11:00 AM' },
+      { day: 'Thursday', hours: '9:30 AM - 11:00 AM' },
+      { day: 'Saturday', hours: '9:00 AM - 10:30 AM' },
+    ]
+  };
+  const mainPricing = pricing[0] || { price: 180, duration: '45-minute classes', sessions_count: 10, included_items: ['All materials included'] };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -85,7 +121,6 @@ export default function Home() {
       setSubmitted(true);
       toast.success("Registration submitted successfully! We'll contact you soon.");
       
-      // Reset form
       setFormData({
         parent_name: "",
         parent_email: "",
@@ -102,6 +137,19 @@ export default function Home() {
     }
 
     setIsSubmitting(false);
+  };
+
+  const formatClassTime = (schedule) => {
+    const dayMap = {
+      tuesday: 'Tuesday',
+      thursday: 'Thursday',
+      saturday: 'Saturday',
+      monday: 'Monday',
+      wednesday: 'Wednesday',
+      friday: 'Friday',
+      sunday: 'Sunday'
+    };
+    return `${dayMap[schedule.day_of_week.toLowerCase()]} ${schedule.start_time} - ${schedule.end_time}`;
   };
 
   return (
@@ -331,27 +379,22 @@ export default function Home() {
                   </div>
                   <h3 className="text-2xl font-semibold text-rose-800 mb-4">Schedule</h3>
                   <div className="space-y-3 text-left">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium text-gray-800">Tuesday Mornings</p>
-                        <p className="text-gray-600">10:00 AM - 10:45 AM</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium text-gray-800">Thursday Mornings</p>
-                        <p className="text-gray-600">10:00 AM - 10:45 AM</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                      <div>
-                        <p className="font-medium text-gray-800">Saturday Mornings</p>
-                        <p className="text-gray-600">9:30 AM - 10:15 AM</p>
-                      </div>
-                    </div>
+                    {classSchedules.length > 0 ? (
+                      classSchedules.map((schedule, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                          <div>
+                            <p className="font-medium text-gray-800 capitalize">{schedule.day_of_week}s</p>
+                            <p className="text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
+                            {schedule.age_range && (
+                              <p className="text-xs text-gray-500">Ages {schedule.age_range}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center">Schedule coming soon</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -369,11 +412,21 @@ export default function Home() {
                     <Clock className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold text-rose-800 mb-4">Duration</h3>
-                  <p className="text-gray-700 mb-4">45-minute classes</p>
-                  <p className="text-gray-600 mb-4">10-week sessions</p>
+                  {mainPricing.duration && (
+                    <p className="text-gray-700 mb-4">{mainPricing.duration}</p>
+                  )}
+                  {mainPricing.sessions_count && (
+                    <p className="text-gray-600 mb-4">{mainPricing.sessions_count}-week session</p>
+                  )}
                   <div className="bg-rose-100/50 rounded-lg p-4 mt-6">
-                    <p className="text-lg font-semibold text-rose-700">$180 per session</p>
-                    <p className="text-sm text-gray-600 mt-1">All materials included</p>
+                    <p className="text-lg font-semibold text-rose-700">${mainPricing.price} per session</p>
+                    {mainPricing.included_items && mainPricing.included_items.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {mainPricing.included_items.map((item, idx) => (
+                          <p key={idx} className="text-sm text-gray-600">{item}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -391,10 +444,15 @@ export default function Home() {
                     <MapPin className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold text-rose-800 mb-4">Location</h3>
-                  <p className="text-gray-700 mb-2">Sweetpeas Dance Studio</p>
-                  <p className="text-gray-600 mb-6">123 Blossom Lane<br />Your City, ST 12345</p>
+                  <p className="text-gray-700 mb-2">{studio.studio_name}</p>
+                  <p className="text-gray-600 mb-6">
+                    {studio.address_line1}<br />
+                    {studio.address_line2}
+                  </p>
                   <div className="bg-rose-100/50 rounded-lg p-4">
-                    <p className="text-sm text-gray-700">Bright, welcoming studio with sprung floors and age-appropriate equipment</p>
+                    <p className="text-sm text-gray-700">
+                      {studio.description}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -555,9 +613,14 @@ export default function Home() {
                             <SelectValue placeholder="Select a class time" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="tuesday_morning">Tuesday 10:00 AM - 10:45 AM</SelectItem>
-                            <SelectItem value="thursday_morning">Thursday 10:00 AM - 10:45 AM</SelectItem>
-                            <SelectItem value="saturday_morning">Saturday 9:30 AM - 10:15 AM</SelectItem>
+                            {classSchedules.map((schedule) => (
+                              <SelectItem key={schedule.id} value={schedule.id}> {/* Assuming schedule has a unique 'id' */}
+                                {formatClassTime(schedule)}
+                              </SelectItem>
+                            ))}
+                            {classSchedules.length === 0 && (
+                                <SelectItem value="no_classes" disabled>No classes available</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -642,7 +705,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm text-rose-200">Call us</p>
-                    <p className="text-lg">(555) 123-4567</p>
+                    <p className="text-lg">{studio.phone}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -651,7 +714,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm text-rose-200">Email us</p>
-                    <p className="text-lg">hello@sweetpeas.dance</p>
+                    <p className="text-lg">{studio.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -660,7 +723,10 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm text-rose-200">Visit us</p>
-                    <p className="text-lg">123 Blossom Lane<br />Your City, ST 12345</p>
+                    <p className="text-lg">
+                      {studio.address_line1}<br />
+                      {studio.address_line2}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -678,18 +744,29 @@ export default function Home() {
                   <p className="text-rose-200">We're open during class times and by appointment</p>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-white/10">
-                    <span>Tuesday</span>
-                    <span className="text-rose-200">9:30 AM - 11:00 AM</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b border-white/10">
-                    <span>Thursday</span>
-                    <span className="text-rose-200">9:30 AM - 11:00 AM</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3">
-                    <span>Saturday</span>
-                    <span className="text-rose-200">9:00 AM - 10:30 AM</span>
-                  </div>
+                  {studio.hours && studio.hours.length > 0 ? (
+                    studio.hours.map((hour, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-3 border-b border-white/10 last:border-b-0">
+                        <span>{hour.day}</span>
+                        <span className="text-rose-200">{hour.hours}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center py-3 border-b border-white/10">
+                        <span>Tuesday</span>
+                        <span className="text-rose-200">9:30 AM - 11:00 AM</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/10">
+                        <span>Thursday</span>
+                        <span className="text-rose-200">9:30 AM - 11:00 AM</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3">
+                        <span>Saturday</span>
+                        <span className="text-rose-200">9:00 AM - 10:30 AM</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

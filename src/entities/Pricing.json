@@ -1,0 +1,38 @@
+{
+  "name": "Pricing",
+  "type": "object",
+  "properties": {
+    "session_name": {
+      "type": "string",
+      "description": "Name of the pricing tier (e.g., 10-Week Session)"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price in dollars"
+    },
+    "duration": {
+      "type": "string",
+      "description": "Duration description (e.g., 45-minute classes)"
+    },
+    "sessions_count": {
+      "type": "number",
+      "description": "Number of sessions included"
+    },
+    "included_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What's included in the price"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this pricing option is currently available"
+    }
+  },
+  "required": [
+    "session_name",
+    "price"
+  ]
+}
