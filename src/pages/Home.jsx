@@ -102,7 +102,14 @@ export default function Home() {
       { day: 'Saturday', hours: '9:00 AM - 10:30 AM' },
     ]
   };
-  const mainPricing = pricing[0] || { price: 180, duration: '45-minute classes', sessions_count: 10, included_items: ['All materials included'] };
+  const mainPricing = pricing[0] || { 
+    price: 180, 
+    duration: '45-minute classes', 
+    sessions_count: 10, 
+    included_items: ['All materials included'],
+    single_class_price: 20, // New field
+    session_name: '10-Week Session' // New field
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -411,20 +418,22 @@ export default function Home() {
                   <div className="w-16 h-16 bg-gradient-to-br from-rose-300 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Clock className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-rose-800 mb-4">Duration</h3>
+                  <h3 className="text-2xl font-semibold text-rose-800 mb-4">Pricing</h3>
                   {mainPricing.duration && (
                     <p className="text-gray-700 mb-4">{mainPricing.duration}</p>
                   )}
                   {mainPricing.sessions_count && (
                     <p className="text-gray-600 mb-4">{mainPricing.sessions_count}-week session</p>
                   )}
-                  <div className="bg-rose-100/50 rounded-lg p-4 mt-6">
-                    <p className="text-lg font-semibold text-rose-700">${mainPricing.price} per session</p>
-                    {mainPricing.included_items && mainPricing.included_items.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {mainPricing.included_items.map((item, idx) => (
-                          <p key={idx} className="text-sm text-gray-600">{item}</p>
-                        ))}
+                  <div className="bg-rose-100/50 rounded-lg p-4 mt-6 space-y-4">
+                    <div>
+                      <p className="text-xl font-semibold text-rose-700">${mainPricing.price}</p>
+                      <p className="text-sm text-gray-600">per session</p>
+                    </div>
+                    {mainPricing.single_class_price && (
+                      <div className="border-t border-rose-200 pt-4">
+                        <p className="text-xl font-semibold text-rose-700">${mainPricing.single_class_price}</p>
+                        <p className="text-sm text-gray-600">for a single drop-in class</p>
                       </div>
                     )}
                   </div>

@@ -8,7 +8,11 @@
     },
     "price": {
       "type": "number",
-      "description": "Price in dollars"
+      "description": "Price in dollars for the full session"
+    },
+    "single_class_price": {
+      "type": "number",
+      "description": "Price for a single drop-in class"
     },
     "duration": {
       "type": "string",
