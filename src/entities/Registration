@@ -1,0 +1,73 @@
+{
+  "name": "Registration",
+  "type": "object",
+  "properties": {
+    "parent_name": {
+      "type": "string",
+      "description": "Parent or guardian name"
+    },
+    "parent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Parent email address"
+    },
+    "parent_phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "child_name": {
+      "type": "string",
+      "description": "Child's full name"
+    },
+    "child_age": {
+      "type": "number",
+      "description": "Child's age"
+    },
+    "child_birthdate": {
+      "type": "string",
+      "format": "date",
+      "description": "Child's date of birth"
+    },
+    "preferred_class_time": {
+      "type": "string",
+      "enum": [
+        "tuesday_morning",
+        "thursday_morning",
+        "saturday_morning"
+      ],
+      "description": "Preferred class schedule"
+    },
+    "emergency_contact": {
+      "type": "string",
+      "description": "Emergency contact name and phone"
+    },
+    "special_notes": {
+      "type": "string",
+      "description": "Any special needs or notes about the child"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "waitlist"
+      ],
+      "default": "pending",
+      "description": "Registration status"
+    }
+  },
+  "required": [
+    "parent_name",
+    "parent_email",
+    "child_name",
+    "child_age",
+    "preferred_class_time"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
