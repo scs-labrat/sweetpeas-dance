@@ -385,25 +385,45 @@ export default function Home() {
                     <Calendar className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold text-rose-800 mb-4">Regular Schedule</h3>
-                  <div className="text-left space-y-4">
-                    <p className="text-sm font-semibold text-gray-700 mb-3">Introductory classes term 4 2025</p>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                        <div>
-                          <p className="font-medium text-gray-800">Tuesday</p>
-                          <p className="text-gray-600">10:00 AM - 11:00 AM</p>
-                          <p className="text-xs text-gray-500">Ages 3 - 5</p>
+                  <div className="space-y-3 text-left">
+                    {classSchedules.length > 0 ? (
+                      classSchedules.map((schedule, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                          <div>
+                            <p className="font-medium text-gray-800 capitalize">{schedule.day_of_week}s</p>
+                            <p className="text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
+                            {schedule.age_range && (
+                              <p className="text-xs text-gray-500">Ages {schedule.age_range}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center">Schedule coming soon</p>
+                    )}
+                    
+                    {/* Introductory Classes Section */}
+                    <div className="mt-6 pt-6 border-t border-rose-200">
+                      <p className="text-sm font-semibold text-gray-700 mb-3">Introductory classes term 4 2025</p>
                       
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                        <div>
-                          <p className="font-medium text-gray-800">Thursday</p>
-                          <p className="text-gray-600">3:30 PM - 4:30 PM</p>
-                          <p className="text-xs text-gray-500">Ages 5 - 7</p>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                          <div>
+                            <p className="font-medium text-gray-800">Tuesday</p>
+                            <p className="text-gray-600">10:00 AM - 11:00 AM</p>
+                            <p className="text-xs text-gray-500">Ages 3 - 5</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                          <div>
+                            <p className="font-medium text-gray-800">Thursday</p>
+                            <p className="text-gray-600">3:30 PM - 4:30 PM</p>
+                            <p className="text-xs text-gray-500">Ages 5 - 7</p>
+                          </div>
                         </div>
                       </div>
                     </div>
