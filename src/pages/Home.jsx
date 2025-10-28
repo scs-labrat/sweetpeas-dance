@@ -102,13 +102,13 @@ export default function Home() {
       { day: 'Saturday', hours: '9:00 AM - 10:30 AM' },
     ]
   };
-  const mainPricing = pricing[0] || { 
-    price: 180, 
-    duration: '45-minute classes', 
-    sessions_count: 10, 
+  const mainPricing = pricing[0] || {
+    price: 220,
+    duration: '60-minute classes',
+    sessions_count: 12,
     included_items: ['All materials included'],
-    single_class_price: 20, // New field
-    session_name: '10-Week Session' // New field
+    single_class_price: 25,
+    session_name: '12-Week Term'
   };
 
   const handleInputChange = (field, value) => {
@@ -418,24 +418,32 @@ export default function Home() {
                   <div className="w-16 h-16 bg-gradient-to-br from-rose-300 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Clock className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-rose-800 mb-4">Pricing</h3>
-                  {mainPricing.duration && (
-                    <p className="text-gray-700 mb-4">{mainPricing.duration}</p>
-                  )}
-                  {mainPricing.sessions_count && (
-                    <p className="text-gray-600 mb-4">{mainPricing.sessions_count}-week session</p>
-                  )}
-                  <div className="bg-rose-100/50 rounded-lg p-4 mt-6 space-y-4">
-                    <div>
-                      <p className="text-xl font-semibold text-rose-700">${mainPricing.price}</p>
-                      <p className="text-sm text-gray-600">per session</p>
+                  <h3 className="text-2xl font-semibold text-rose-800 mb-6">Pricing</h3>
+                  
+                  <div className="bg-rose-100/50 rounded-lg p-6 space-y-4">
+                    <div className="pb-4">
+                      <p className="text-2xl font-bold text-rose-700">${mainPricing.price} per term</p>
+                      <p className="text-sm text-gray-600 mt-3 leading-relaxed">
+                        Payment plans for term, semester and yearly tuition are available. Simply select the payment option in your cart.
+                      </p>
                     </div>
-                    {mainPricing.single_class_price && (
-                      <div className="border-t border-rose-200 pt-4">
-                        <p className="text-xl font-semibold text-rose-700">${mainPricing.single_class_price}</p>
-                        <p className="text-sm text-gray-600">for a single drop-in class</p>
-                      </div>
-                    )}
+                    
+                    <div className="text-left space-y-2 pb-4">
+                      <p className="text-gray-700">
+                        <span className="font-medium">Class Duration:</span> {mainPricing.duration || '60min'}
+                      </p>
+                      <p className="text-gray-700">
+                        <span className="font-medium">{mainPricing.sessions_count || 12} weeks per term</span>
+                      </p>
+                    </div>
+                    
+                    <div className="border-t border-rose-200 pt-4">
+                      <p className="text-lg font-semibold text-rose-700">${mainPricing.single_class_price}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        for a single drop-in class<br />
+                        <span className="text-xs">(only available in weeks 1 to 3)</span>
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
