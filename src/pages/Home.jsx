@@ -384,24 +384,29 @@ export default function Home() {
                   <div className="w-16 h-16 bg-gradient-to-br from-rose-300 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Calendar className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-rose-800 mb-4">Schedule</h3>
-                  <div className="space-y-3 text-left">
-                    {classSchedules.length > 0 ? (
-                      classSchedules.map((schedule, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
-                          <div>
-                            <p className="font-medium text-gray-800 capitalize">{schedule.day_of_week}s</p>
-                            <p className="text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
-                            {schedule.age_range && (
-                              <p className="text-xs text-gray-500">Ages {schedule.age_range}</p>
-                            )}
-                          </div>
+                  <h3 className="text-2xl font-semibold text-rose-800 mb-4">Regular Schedule</h3>
+                  <div className="text-left space-y-4">
+                    <p className="text-sm font-semibold text-gray-700 mb-3">Introductory classes term 4 2025</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                        <div>
+                          <p className="font-medium text-gray-800">Tuesday</p>
+                          <p className="text-gray-600">10:00 AM - 11:00 AM</p>
+                          <p className="text-xs text-gray-500">Ages 3 - 5</p>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center">Schedule coming soon</p>
-                    )}
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
+                        <div>
+                          <p className="font-medium text-gray-800">Thursday</p>
+                          <p className="text-gray-600">3:30 PM - 4:30 PM</p>
+                          <p className="text-xs text-gray-500">Ages 5 - 7</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -421,9 +426,9 @@ export default function Home() {
                   <h3 className="text-2xl font-semibold text-rose-800 mb-6">Pricing</h3>
                   
                   <div className="bg-rose-100/50 rounded-lg p-6 space-y-4">
-                    <div className="pb-4">
+                    <div className="pb-4 text-center">
                       <p className="text-2xl font-bold text-rose-700">${mainPricing.price} per term</p>
-                      <p className="text-sm text-gray-600 mt-3 leading-relaxed">
+                      <p className="text-sm text-gray-600 mt-3 leading-relaxed text-left">
                         Payment plans for term, semester and yearly tuition are available. Simply select the payment option in your cart.
                       </p>
                     </div>
@@ -437,7 +442,7 @@ export default function Home() {
                       </p>
                     </div>
                     
-                    <div className="border-t border-rose-200 pt-4">
+                    <div className="border-t border-rose-200 pt-4 text-center">
                       <p className="text-lg font-semibold text-rose-700">${mainPricing.single_class_price}</p>
                       <p className="text-sm text-gray-600 mt-1">
                         for a single drop-in class<br />
