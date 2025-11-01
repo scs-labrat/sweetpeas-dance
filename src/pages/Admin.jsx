@@ -26,7 +26,9 @@ import {
   MessageSquare,
   Eye,
   Send,
-  Loader2
+  Loader2,
+  CalendarCheck,
+  Star
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +37,17 @@ import AssistantChat from "../components/admin/AssistantChat";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import ReactMarkdown from 'react-markdown';
+import { format, isSameDay, parseISO } from 'date-fns';
 
-export default function Admin() {
+const EVENT_COLORS = {
+  class: 'bg-blue-100 border-blue-300 text-blue-800',
+  meeting: 'bg-purple-100 border-purple-300 text-purple-800',
+  reminder: 'bg-yellow-100 border-yellow-300 text-yellow-800',
+  deadline: 'bg-red-100 border-red-300 text-red-800',
+  other: 'bg-gray-100 border-gray-300 text-gray-800',
+};
+
+function Admin() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssistant, setShowAssistant] = useState(false);
@@ -45,6 +56,8 @@ export default function Admin() {
   const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [horoscope, setHoroscope] = useState('');
+  const [loadingHoroscope, setLoadingHoroscope] = useState(false);
   const [blogForm, setBlogForm] = useState({
     title: '',
     content: '',
@@ -105,6 +118,50 @@ export default function Admin() {
     queryFn: () => base44.entities.BlogPost.list('-created_date'),
     enabled: !!user,
   });
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date'),
+    enabled: !!user,
+  });
+
+  // Get today's events
+  const todayEvents = calendarEvents.filter(event => {
+    const eventDate = new Date(event.start_date);
+    return isSameDay(eventDate, new Date());
+  });
+
+  // Fetch horoscope on mount
+  useEffect(() => {
+    if (user) {
+      fetchHoroscope();
+    }
+  }, [user]);
+
+  const fetchHoroscope = async () => {
+    setLoadingHoroscope(true);
+    try {
+      const today = format(new Date(), 'EEEE, MMMM d, yyyy');
+      const prompt = `You are a warm, encouraging, and positive astrologer. Generate a daily horoscope for Virgo for ${today}. 
+      
+Make it:
+- 2-3 sentences
+- Relevant to running a small business (dance studio)
+- Focus on creativity, organization, and working with children/families
+
+Format: Just the horoscope text, no title or label.`;
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: prompt
+      });
+
+      setHoroscope(result);
+    } catch (error) {
+      console.error('Error fetching horoscope:', error);
+      setHoroscope('The stars are aligned in your favor today! Focus on what brings you joy. ✨');
+    }
+    setLoadingHoroscope(false);
+  };
 
   const updateRegistrationMutation = useMutation({
     mutationFn: ({ id, status }) => base44.entities.Registration.update(id, { status }),
@@ -422,8 +479,12 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="registrations" className="space-y-6">
+        <Tabs defaultValue="today" className="space-y-6">
           <TabsList className="bg-white/80 backdrop-blur-sm border border-rose-200">
+            <TabsTrigger value="today" className="data-[state=active]:bg-rose-100">
+              <CalendarCheck className="w-4 h-4 mr-2" />
+              Today
+            </TabsTrigger>
             <TabsTrigger value="registrations" className="data-[state=active]:bg-rose-100">
               <Users className="w-4 h-4 mr-2" />
               Registrations
@@ -445,6 +506,120 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
               Content & Blogs
             </TabsTrigger>
           </TabsList>
+
+          {/* Today Tab */}
+          <TabsContent value="today">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Today's Events */}
+              <Card className="bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-rose-800 flex items-center gap-2">
+                    <CalendarCheck className="w-5 h-5" />
+                    Today's Schedule
+                  </CardTitle>
+                  <CardDescription>{format(new Date(), 'EEEE, MMMM d, yyyy')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {todayEvents.length > 0 ? (
+                    <div className="space-y-3">
+                      {todayEvents.map(event => {
+                        const eventStart = parseISO(event.start_date);
+                        return (
+                          <div
+                            key={event.id}
+                            className={`p-4 rounded-lg border ${EVENT_COLORS[event.event_type] || EVENT_COLORS.other}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-semibold">{event.title}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                {event.event_type}
+                              </Badge>
+                            </div>
+                            <p className="text-sm mb-2">
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              {format(eventStart, 'h:mm a')}
+                              {event.end_date && ` - ${format(parseISO(event.end_date), 'h:mm a')}`}
+                            </p>
+                            {event.description && (
+                              <p className="text-sm text-gray-700">{event.description}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <CalendarCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No events scheduled for today</p>
+                      <p className="text-sm mt-2">Enjoy your free day! ✨</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Daily Horoscope */}
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+                <CardHeader>
+                  <CardTitle className="text-purple-800 flex items-center gap-2">
+                    <Star className="w-5 h-5" />
+                    Your Daily Horoscope
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2">
+                    <span>♍</span> Virgo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingHoroscope ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-lg text-gray-700 leading-relaxed italic">
+                        "{horoscope}"
+                      </p>
+                      <Button
+                        onClick={fetchHoroscope}
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Get New Reading
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats for Today */}
+              <Card className="md:col-span-2 bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-rose-800">Today's Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-600 font-medium">Events Today</p>
+                      <p className="text-3xl font-bold text-blue-800">{todayEvents.length}</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-sm text-green-600 font-medium">Pending Reviews</p>
+                      <p className="text-3xl font-bold text-green-800">{pendingCount}</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-sm text-purple-600 font-medium">Active Students</p>
+                      <p className="text-3xl font-bold text-purple-800">{confirmedCount}</p>
+                    </div>
+                    <div className="text-center p-4 bg-rose-50 rounded-lg">
+                      <p className="text-sm text-rose-600 font-medium">Draft Blogs</p>
+                      <p className="text-3xl font-bold text-rose-800">{draftBlogs}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Registrations Tab */}
           <TabsContent value="registrations">
@@ -1004,3 +1179,5 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
     </div>
   );
 }
+
+export default Admin;
