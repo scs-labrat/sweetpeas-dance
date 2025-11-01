@@ -7,7 +7,6 @@ import { Send, Sparkles, Loader2, X, Volume2, VolumeX, Mic, MicOff } from 'lucid
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { textToSpeech } from '@/functions/textToSpeech';
 
 const MessageBubble = ({ message, onSpeak }) => {
   const isUser = message.role === 'user';
@@ -204,7 +203,8 @@ export default function AssistantChat({ isOpen, onClose }) {
     setIsSpeaking(true);
 
     try {
-      const response = await textToSpeech({ text: cleanText });
+      // Call the backend function using base44.functions.invoke
+      const response = await base44.functions.invoke('textToSpeech', { text: cleanText });
       
       // Create blob from response data
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
