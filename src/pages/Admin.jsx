@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,26 +8,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Users,
+  Calendar,
+  DollarSign,
+  FileText,
+  Plus,
+  Edit,
+  Trash2,
   Mail,
   CheckCircle,
   Clock,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import CalendarView from "../components/admin/CalendarView";
+import AssistantChat from "../components/admin/AssistantChat";
 
 export default function Admin() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAssistant, setShowAssistant] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -153,6 +158,10 @@ export default function Admin() {
               <Users className="w-4 h-4 mr-2" />
               Registrations
             </TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-rose-100">
+              <Calendar className="w-4 h-4 mr-2" />
+              Calendar
+            </TabsTrigger>
             <TabsTrigger value="schedule" className="data-[state=active]:bg-rose-100">
               <Calendar className="w-4 h-4 mr-2" />
               Schedule
@@ -183,10 +192,10 @@ export default function Admin() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold text-gray-800">{reg.child_name}</h3>
-                              <Badge 
+                              <Badge
                                 className={
-                                  reg.status === 'confirmed' 
-                                    ? 'bg-green-100 text-green-700' 
+                                  reg.status === 'confirmed'
+                                    ? 'bg-green-100 text-green-700'
                                     : reg.status === 'pending'
                                     ? 'bg-blue-100 text-blue-700'
                                     : 'bg-orange-100 text-orange-700'
@@ -239,6 +248,11 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar">
+            <CalendarView />
           </TabsContent>
 
           {/* Schedule Tab */}
@@ -378,6 +392,17 @@ export default function Admin() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* AI Assistant Button */}
+        <Button
+          onClick={() => setShowAssistant(true)}
+          className="fixed bottom-4 right-4 h-14 w-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all z-40"
+        >
+          <MessageSquare className="h-6 w-6" />
+        </Button>
+
+        {/* AI Assistant Chat */}
+        <AssistantChat isOpen={showAssistant} onClose={() => setShowAssistant(false)} />
       </div>
     </div>
   );
