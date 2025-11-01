@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Sparkles, Loader2, X, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
+import { Send, Sparkles, Loader2, X, Volume2, VolumeX, Mic, MicOff, GraduationCap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -73,6 +73,57 @@ const MessageBubble = ({ message, onSpeak }) => {
   );
 };
 
+const TRAINING_SKILLS = [
+  {
+    id: 'calendar_event',
+    name: 'Adding Calendar Events',
+    prompt: `Hi Fiona! 👋 Let's do a quick training session on how I can help you manage your calendar.
+
+I'm going to walk you through adding a calendar event. This is really useful for tracking classes, meetings, payment reminders, and deadlines.
+
+Let's practice together! Try asking me to:
+"Add a calendar event for a parent meeting with Sarah's mom next Tuesday at 2pm"
+
+Go ahead - give it a try! I'll help you through the process. 🗓️`
+  },
+  {
+    id: 'list_parents',
+    name: 'Finding Parent Information',
+    prompt: `Hi Fiona! 👋 Let's learn how I can help you find parent and student information quickly.
+
+I have access to all your registration data, so I can help you look up parents, children, contact info, and more.
+
+Let's practice! Try asking me:
+"Show me all the parents who have children registered" or "Who are the parents of pending registrations?"
+
+Give it a try! I'll show you how easy it is to get this information. 👨‍👩‍👧‍👦`
+  },
+  {
+    id: 'draft_letter',
+    name: 'Drafting Letters & Emails',
+    prompt: `Hi Fiona! 👋 Time to learn how I can help you write professional letters and emails.
+
+I can draft reminder emails, welcome letters, newsletters, and more - all tailored to your Sweetpeas Dance Studio style.
+
+Let's practice! Try asking me:
+"Draft a welcome email for new parents joining next term" or "Write a payment reminder for next week's fees"
+
+Go ahead and try it! I'll create a draft that you can review and customize. ✍️`
+  },
+  {
+    id: 'analyze_registrations',
+    name: 'Analyzing Registration Data',
+    prompt: `Hi Fiona! 👋 Let's explore how I can help you understand your business data better.
+
+I can analyze registrations, track trends, identify patterns, and give you insights to help grow your studio.
+
+Let's practice! Try asking me:
+"How many registrations do we have by class time?" or "Which class times are most popular?"
+
+Try it now! I'll analyze your data and share helpful insights. 📊`
+  }
+];
+
 export default function AssistantChat({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -82,6 +133,7 @@ export default function AssistantChat({ isOpen, onClose }) {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isTrainingMode, setIsTrainingMode] = useState(false);
   
   const messagesEndRef = useRef(null);
   const unsubscribeRef = useRef(null);
@@ -159,7 +211,7 @@ export default function AssistantChat({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  const initializeConversation = async () => {
+  const initializeConversation = async (trainingSkill = null) => {
     if (isInitializing) return;
     
     setIsInitializing(true);
@@ -167,8 +219,8 @@ export default function AssistantChat({ isOpen, onClose }) {
       const conversation = await base44.agents.createConversation({
         agent_name: 'sweetpeas_assistant',
         metadata: {
-          name: 'Admin Assistant Chat',
-          description: 'Conversation with Sweetpeas Assistant'
+          name: trainingSkill ? `Training: ${trainingSkill.name}` : 'Admin Assistant Chat',
+          description: trainingSkill ? `Training session for ${trainingSkill.name}` : 'Conversation with Sweetpeas Assistant'
         }
       });
       
@@ -179,15 +231,41 @@ export default function AssistantChat({ isOpen, onClose }) {
         setIsLoading(false);
       });
 
+      const initialMessage = trainingSkill 
+        ? trainingSkill.prompt
+        : 'Hi! Please introduce yourself and give me a brief tour of what you can help me with.';
+
       await base44.agents.addMessage(conversation, {
         role: 'user',
-        content: 'Hi! Please introduce yourself and give me a brief tour of what you can help me with.'
+        content: initialMessage
       });
       
     } catch (error) {
       console.error('Failed to initialize conversation:', error);
       setIsInitializing(false);
     }
+  };
+
+  const startTrainingMode = async () => {
+    // Randomly select a skill to train
+    const randomSkill = TRAINING_SKILLS[Math.floor(Math.random() * TRAINING_SKILLS.length)];
+    
+    setIsTrainingMode(true);
+    toast.success(`Starting training: ${randomSkill.name}! 🎓`);
+    
+    // Close current conversation
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+    
+    // Reset state
+    setMessages([]);
+    setConversationId(null);
+    setIsInitializing(false);
+    
+    // Start new training conversation
+    await initializeConversation(randomSkill);
   };
 
   const speakText = async (text) => {
@@ -297,11 +375,13 @@ export default function AssistantChat({ isOpen, onClose }) {
       className="fixed bottom-4 right-4 z-50 w-[450px] h-[600px] flex flex-col"
     >
       <Card className="flex flex-col h-full shadow-2xl border-2 border-rose-200">
-        <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg flex-shrink-0 p-4">
+        <CardHeader className={`${isTrainingMode ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-purple-600 to-pink-600'} text-white rounded-t-lg flex-shrink-0 p-4`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              <CardTitle className="text-lg">Sweetpeas Assistant</CardTitle>
+              {isTrainingMode ? <GraduationCap className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+              <CardTitle className="text-lg">
+                {isTrainingMode ? 'Training Mode' : 'Sweetpeas Assistant'}
+              </CardTitle>
               {isSpeaking && (
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
@@ -311,6 +391,15 @@ export default function AssistantChat({ isOpen, onClose }) {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={startTrainingMode}
+                className="text-white hover:bg-white/20 h-8 w-8"
+                title="Start training mode"
+              >
+                <GraduationCap className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -330,8 +419,8 @@ export default function AssistantChat({ isOpen, onClose }) {
               </Button>
             </div>
           </div>
-          <p className="text-xs text-purple-100 mt-1">
-            Your AI business helper {voiceEnabled && '🔊'}
+          <p className="text-xs text-white/90 mt-1">
+            {isTrainingMode ? '🎓 Learning a new skill' : `Your AI business helper ${voiceEnabled ? '🔊' : ''}`}
           </p>
         </CardHeader>
         

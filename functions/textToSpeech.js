@@ -17,8 +17,8 @@ Deno.serve(async (req) => {
 
         const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
         
-        // Using Rachel voice - a friendly, warm female voice
-        const voiceId = "21m00Tcm4TlvDq8ikWAM";
+        // Using Fiona's selected voice
+        const voiceId = "sgk995upfe3tYLvoGcBN";
 
         const response = await fetch(
             `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
