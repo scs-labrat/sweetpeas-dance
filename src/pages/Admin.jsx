@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -183,7 +184,8 @@ export default function Admin() {
 
     const blogData = {
       ...blogForm,
-      publish_date: blogForm.status === 'published' ? new Date().toISOString() : null
+      publish_date: blogForm.status === 'published' ? new Date().toISOString() : null,
+      ai_generated: false // Explicitly set to false when manually saving/editing
     };
 
     if (selectedBlog) {
@@ -235,14 +237,17 @@ Format your response as JSON with this structure:
       });
 
       setBlogForm({
-        ...blogForm,
         title: result.title,
         content: result.content,
         excerpt: result.excerpt,
+        status: 'draft',
+        author: user?.full_name || '',
         tags: result.tags || [],
-        status: 'draft'
+        featured_image: '',
+        ai_generated: true // Mark as AI-generated
       });
 
+      setSelectedBlog(null);
       setShowBlogDialog(true);
       toast.success('Blog post generated! Review and edit before publishing.');
     } catch (error) {
@@ -289,15 +294,30 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
   };
 
   const handleSendNewsletter = async () => {
+    if (!newsletterForm.subject || !newsletterForm.content) {
+      toast.error('Please fill in subject and content');
+      return;
+    }
+
     try {
-      const recipients = registrations.map(r => r.parent_email);
+      let recipients = [];
+      
+      if (newsletterForm.recipients === 'all') {
+        recipients = registrations.map(r => r.parent_email);
+      } else if (newsletterForm.recipients === 'confirmed') {
+        recipients = registrations.filter(r => r.status === 'confirmed').map(r => r.parent_email);
+      } else if (newsletterForm.recipients === 'pending') {
+        recipients = registrations.filter(r => r.status === 'pending').map(r => r.parent_email);
+      }
       
       if (recipients.length === 0) {
         toast.error('No recipients found');
         return;
       }
 
-      // Send to all parents
+      toast.info(`Sending newsletter to ${recipients.length} recipients...`);
+
+      // Send to all selected parents
       await Promise.all(recipients.map(email => 
         base44.integrations.Core.SendEmail({
           from_name: "Sweetpeas Dance Studio",
