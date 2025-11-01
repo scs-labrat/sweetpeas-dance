@@ -7,6 +7,7 @@ import { Send, Sparkles, Loader2, X, Volume2, VolumeX, Mic, MicOff } from 'lucid
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { textToSpeech } from '@/functions/textToSpeech';
 
 const MessageBubble = ({ message, onSpeak }) => {
   const isUser = message.role === 'user';
@@ -86,6 +87,7 @@ export default function AssistantChat({ isOpen, onClose }) {
   const unsubscribeRef = useRef(null);
   const recognitionRef = useRef(null);
   const lastMessageCountRef = useRef(0);
+  const audioRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -188,7 +190,7 @@ export default function AssistantChat({ isOpen, onClose }) {
     }
   };
 
-  const speakText = (text) => {
+  const speakText = async (text) => {
     if (!voiceEnabled || !text) return;
     
     stopSpeaking();
@@ -199,20 +201,45 @@ export default function AssistantChat({ isOpen, onClose }) {
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
       .replace(/\n+/g, '. ');
     
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    
-    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+
+    try {
+      const response = await textToSpeech({ text: cleanText });
+      
+      // Create blob from response data
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Create and play audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+      
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audioRef.current.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        toast.error('Failed to play audio');
+      };
+      
+      await audioRef.current.play();
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      setIsSpeaking(false);
+      toast.error('Failed to generate speech');
+    }
   };
 
   const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setIsSpeaking(false);
   };
 
