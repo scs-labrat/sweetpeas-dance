@@ -120,9 +120,43 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      await base44.entities.Registration.create({
+      const registrationData = {
         ...formData,
         child_age: parseInt(formData.child_age)
+      };
+      
+      await base44.entities.Registration.create(registrationData);
+      
+      // Send email notification
+      const selectedClass = classSchedules.find(s => s.id === formData.preferred_class_time);
+      const classTimeFormatted = selectedClass ? formatClassTime(selectedClass) : 'Not selected or invalid class ID';
+      
+      await base44.integrations.Core.SendEmail({
+        from_name: "Sweetpeas Dance Registration",
+        to: "fionaslewis@gmail.com",
+        subject: `New Registration: ${formData.child_name}`,
+        body: `
+New dance class registration received!
+
+PARENT INFORMATION:
+Name: ${formData.parent_name}
+Email: ${formData.parent_email}
+Phone: ${formData.parent_phone || 'Not provided'}
+
+CHILD INFORMATION:
+Name: ${formData.child_name}
+Age: ${formData.child_age}
+Date of Birth: ${formData.child_birthdate || 'Not provided'}
+
+CLASS SELECTION:
+Preferred Time: ${classTimeFormatted}
+
+ADDITIONAL INFORMATION:
+Emergency Contact: ${formData.emergency_contact || 'Not provided'}
+Special Notes: ${formData.special_notes || 'None'}
+
+Registration Date: ${new Date().toLocaleString()}
+        `
       });
       
       setSubmitted(true);
@@ -140,6 +174,7 @@ export default function Home() {
         special_notes: ""
       });
     } catch (error) {
+      console.error("Registration error:", error); // Log error for debugging
       toast.error("Something went wrong. Please try again.");
     }
 
@@ -387,8 +422,8 @@ export default function Home() {
                   <h3 className="text-2xl font-semibold text-rose-800 mb-4">Regular Schedule</h3>
                   <div className="space-y-3 text-left">
                     {classSchedules.length > 0 ? (
-                      classSchedules.map((schedule, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
+                      classSchedules.map((schedule) => (
+                        <div key={schedule.id} className="flex items-start gap-3">
                           <div className="w-2 h-2 bg-rose-400 rounded-full mt-2" />
                           <div>
                             <p className="font-medium text-gray-800 capitalize">{schedule.day_of_week}s</p>
