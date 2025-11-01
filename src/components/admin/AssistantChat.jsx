@@ -3,11 +3,12 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Sparkles, Loader2, X } from 'lucide-react';
+import { Send, Sparkles, Loader2, X, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
-const MessageBubble = ({ message }) => {
+const MessageBubble = ({ message, onSpeak }) => {
   const isUser = message.role === 'user';
   
   return (
@@ -52,6 +53,15 @@ const MessageBubble = ({ message }) => {
             ))}
           </div>
         )}
+        
+        {!isUser && message.content && (
+          <button
+            onClick={() => onSpeak(message.content)}
+            className="mt-1 text-xs text-gray-500 hover:text-purple-600 transition-colors"
+          >
+            🔊 Play
+          </button>
+        )}
       </div>
       {isUser && (
         <div className="h-8 w-8 rounded-full bg-rose-200 flex items-center justify-center shrink-0">
@@ -68,8 +78,14 @@ export default function AssistantChat({ isOpen, onClose }) {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const unsubscribeRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const lastMessageCountRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,6 +94,54 @@ export default function AssistantChat({ isOpen, onClose }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-speak new assistant messages when voice is enabled
+  useEffect(() => {
+    if (voiceEnabled && messages.length > lastMessageCountRef.current) {
+      const newMessages = messages.slice(lastMessageCountRef.current);
+      const lastAssistantMessage = newMessages.reverse().find(m => m.role === 'assistant');
+      
+      if (lastAssistantMessage?.content) {
+        speakText(lastAssistantMessage.content);
+      }
+    }
+    lastMessageCountRef.current = messages.length;
+  }, [messages, voiceEnabled]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+
+        recognitionRef.current.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(transcript);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          toast.error('Voice recognition failed. Please try again.');
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && !conversationId && !isInitializing) {
@@ -89,6 +153,7 @@ export default function AssistantChat({ isOpen, onClose }) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
+      stopSpeaking();
     };
   }, [isOpen]);
 
@@ -107,13 +172,11 @@ export default function AssistantChat({ isOpen, onClose }) {
       
       setConversationId(conversation.id);
       
-      // Subscribe to updates first
       unsubscribeRef.current = base44.agents.subscribeToConversation(conversation.id, (data) => {
         setMessages(data.messages || []);
         setIsLoading(false);
       });
 
-      // Send initial greeting
       await base44.agents.addMessage(conversation, {
         role: 'user',
         content: 'Hi! Please introduce yourself and give me a brief tour of what you can help me with.'
@@ -122,6 +185,58 @@ export default function AssistantChat({ isOpen, onClose }) {
     } catch (error) {
       console.error('Failed to initialize conversation:', error);
       setIsInitializing(false);
+    }
+  };
+
+  const speakText = (text) => {
+    if (!voiceEnabled || !text) return;
+    
+    stopSpeaking();
+    
+    // Clean markdown formatting for speech
+    const cleanText = text
+      .replace(/[#*_`]/g, '')
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      .replace(/\n+/g, '. ');
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  const toggleVoice = () => {
+    if (voiceEnabled) {
+      stopSpeaking();
+    }
+    setVoiceEnabled(!voiceEnabled);
+    toast.success(voiceEnabled ? 'Voice disabled' : 'Voice enabled');
+  };
+
+  const startListening = () => {
+    if (!recognitionRef.current) {
+      toast.error('Voice recognition not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      stopSpeaking();
+      setIsListening(true);
+      recognitionRef.current.start();
     }
   };
 
@@ -159,17 +274,37 @@ export default function AssistantChat({ isOpen, onClose }) {
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
               <CardTitle className="text-lg">Sweetpeas Assistant</CardTitle>
+              {isSpeaking && (
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 1 }}
+                  className="w-2 h-2 bg-green-400 rounded-full"
+                />
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white hover:bg-white/20 h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleVoice}
+                className="text-white hover:bg-white/20 h-8 w-8"
+                title={voiceEnabled ? "Disable voice" : "Enable voice"}
+              >
+                {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="text-white hover:bg-white/20 h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <p className="text-xs text-purple-100 mt-1">Your AI business helper</p>
+          <p className="text-xs text-purple-100 mt-1">
+            Your AI business helper {voiceEnabled && '🔊'}
+          </p>
         </CardHeader>
         
         <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -183,7 +318,11 @@ export default function AssistantChat({ isOpen, onClose }) {
           ) : (
             <div className="space-y-2">
               {messages.map((message, idx) => (
-                <MessageBubble key={idx} message={message} />
+                <MessageBubble 
+                  key={idx} 
+                  message={message} 
+                  onSpeak={speakText}
+                />
               ))}
               {isLoading && (
                 <div className="flex gap-3 justify-start">
@@ -206,12 +345,21 @@ export default function AssistantChat({ isOpen, onClose }) {
 
         <div className="p-4 border-t bg-white rounded-b-lg flex-shrink-0">
           <div className="flex gap-2">
+            <Button
+              onClick={startListening}
+              disabled={isLoading || !conversationId}
+              variant="outline"
+              size="icon"
+              className={isListening ? 'bg-red-100 border-red-300' : ''}
+            >
+              {isListening ? <MicOff className="h-4 w-4 text-red-600" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Ask me anything..."
-              disabled={isLoading || !conversationId}
+              placeholder={isListening ? "Listening..." : "Ask me anything..."}
+              disabled={isLoading || !conversationId || isListening}
               className="flex-1"
             />
             <Button
@@ -222,6 +370,11 @@ export default function AssistantChat({ isOpen, onClose }) {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          {isListening && (
+            <p className="text-xs text-gray-500 mt-2 text-center animate-pulse">
+              🎤 Listening... Speak now
+            </p>
+          )}
         </div>
       </Card>
     </motion.div>
