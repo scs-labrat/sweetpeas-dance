@@ -3,9 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Sparkles, Loader2, X, MessageSquare } from 'lucide-react';
+import { Send, Sparkles, Loader2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const MessageBubble = ({ message }) => {
   const isUser = message.role === 'user';
@@ -67,7 +67,9 @@ export default function AssistantChat({ isOpen, onClose }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef(null);
+  const unsubscribeRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,12 +80,22 @@ export default function AssistantChat({ isOpen, onClose }) {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && !conversationId) {
+    if (isOpen && !conversationId && !isInitializing) {
       initializeConversation();
     }
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
   }, [isOpen]);
 
   const initializeConversation = async () => {
+    if (isInitializing) return;
+    
+    setIsInitializing(true);
     try {
       const conversation = await base44.agents.createConversation({
         agent_name: 'sweetpeas_assistant',
@@ -95,20 +107,21 @@ export default function AssistantChat({ isOpen, onClose }) {
       
       setConversationId(conversation.id);
       
+      // Subscribe to updates first
+      unsubscribeRef.current = base44.agents.subscribeToConversation(conversation.id, (data) => {
+        setMessages(data.messages || []);
+        setIsLoading(false);
+      });
+
       // Send initial greeting
-      const greeting = await base44.agents.addMessage(conversation, {
+      await base44.agents.addMessage(conversation, {
         role: 'user',
         content: 'Hi! Please introduce yourself and give me a brief tour of what you can help me with.'
       });
       
-      // Subscribe to updates
-      const unsubscribe = base44.agents.subscribeToConversation(conversation.id, (data) => {
-        setMessages(data.messages);
-      });
-
-      return () => unsubscribe();
     } catch (error) {
       console.error('Failed to initialize conversation:', error);
+      setIsInitializing(false);
     }
   };
 
@@ -127,7 +140,6 @@ export default function AssistantChat({ isOpen, onClose }) {
       });
     } catch (error) {
       console.error('Failed to send message:', error);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -142,7 +154,7 @@ export default function AssistantChat({ isOpen, onClose }) {
       className="fixed bottom-4 right-4 z-50 w-[450px] h-[600px] flex flex-col"
     >
       <Card className="flex flex-col h-full shadow-2xl border-2 border-rose-200">
-        <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg flex-shrink-0">
+        <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg flex-shrink-0 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
@@ -152,7 +164,7 @@ export default function AssistantChat({ isOpen, onClose }) {
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 h-8 w-8"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -161,26 +173,35 @@ export default function AssistantChat({ isOpen, onClose }) {
         </CardHeader>
         
         <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
-          <div className="space-y-2">
-            {messages.map((message, idx) => (
-              <MessageBubble key={idx} message={message} />
-            ))}
-            {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 text-white animate-spin" />
-                </div>
-                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          {!conversationId ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 text-purple-500 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Starting conversation...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messages.map((message, idx) => (
+                <MessageBubble key={idx} message={message} />
+              ))}
+              {isLoading && (
+                <div className="flex gap-3 justify-start">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 text-white animate-spin" />
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </CardContent>
 
         <div className="p-4 border-t bg-white rounded-b-lg flex-shrink-0">
@@ -188,14 +209,14 @@ export default function AssistantChat({ isOpen, onClose }) {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Ask me anything..."
-              disabled={isLoading}
+              disabled={isLoading || !conversationId}
               className="flex-1"
             />
             <Button
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !conversationId}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
               <Send className="h-4 w-4" />
