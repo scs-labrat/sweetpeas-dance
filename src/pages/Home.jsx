@@ -127,7 +127,6 @@ export default function Home() {
       
       await base44.entities.Registration.create(registrationData);
       
-      // Send email notification
       const selectedClass = classSchedules.find(s => s.id === formData.preferred_class_time);
       const classTimeFormatted = selectedClass ? formatClassTime(selectedClass) : 'Not selected or invalid class ID';
       
@@ -174,7 +173,7 @@ Registration Date: ${new Date().toLocaleString()}
         special_notes: ""
       });
     } catch (error) {
-      console.error("Registration error:", error); // Log error for debugging
+      console.error("Registration error:", error);
       toast.error("Something went wrong. Please try again.");
     }
 
@@ -215,7 +214,7 @@ Registration Date: ${new Date().toLocaleString()}
             transition={{ duration: 0.8 }}
           >
             <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/user_680f435d46c180e10e2aa08d/c3cf18e3a_image.png"
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/user_680f435d46c180e210e2aa08d/c3cf18e3a_image.png"
               alt="Sweetpeas Creative Dance Class"
               className="w-full max-w-md mx-auto mb-8 drop-shadow-2xl"
             />
@@ -594,9 +593,9 @@ Registration Date: ${new Date().toLocaleString()}
                       </h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="parent_name">Parent/Guardian Name *</Label>
+                          <Label htmlFor="parent-name">Parent/Guardian Name *</Label>
                           <Input
-                            id="parent_name"
+                            id="parent-name"
                             value={formData.parent_name}
                             onChange={(e) => handleInputChange('parent_name', e.target.value)}
                             required
@@ -604,9 +603,9 @@ Registration Date: ${new Date().toLocaleString()}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="parent_email">Email Address *</Label>
+                          <Label htmlFor="parent-email">Email Address *</Label>
                           <Input
-                            id="parent_email"
+                            id="parent-email"
                             type="email"
                             value={formData.parent_email}
                             onChange={(e) => handleInputChange('parent_email', e.target.value)}
@@ -615,9 +614,9 @@ Registration Date: ${new Date().toLocaleString()}
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Label htmlFor="parent_phone">Phone Number</Label>
+                          <Label htmlFor="parent-phone">Phone Number</Label>
                           <Input
-                            id="parent_phone"
+                            id="parent-phone"
                             type="tel"
                             value={formData.parent_phone}
                             onChange={(e) => handleInputChange('parent_phone', e.target.value)}
@@ -637,9 +636,9 @@ Registration Date: ${new Date().toLocaleString()}
                       </h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="child_name">Child's Name *</Label>
+                          <Label htmlFor="child-name">Child's Name *</Label>
                           <Input
-                            id="child_name"
+                            id="child-name"
                             value={formData.child_name}
                             onChange={(e) => handleInputChange('child_name', e.target.value)}
                             required
@@ -647,9 +646,9 @@ Registration Date: ${new Date().toLocaleString()}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="child_age">Age *</Label>
+                          <Label htmlFor="child-age">Age *</Label>
                           <Input
-                            id="child_age"
+                            id="child-age"
                             type="number"
                             min="3"
                             max="5"
@@ -660,9 +659,9 @@ Registration Date: ${new Date().toLocaleString()}
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Label htmlFor="child_birthdate">Date of Birth</Label>
+                          <Label htmlFor="child-birthdate">Date of Birth</Label>
                           <Input
-                            id="child_birthdate"
+                            id="child-birthdate"
                             type="date"
                             value={formData.child_birthdate}
                             onChange={(e) => handleInputChange('child_birthdate', e.target.value)}
@@ -681,17 +680,17 @@ Registration Date: ${new Date().toLocaleString()}
                         Class Selection
                       </h3>
                       <div>
-                        <Label htmlFor="preferred_class_time">Preferred Class Time *</Label>
+                        <Label htmlFor="preferred-class-time">Preferred Class Time *</Label>
                         <Select
                           value={formData.preferred_class_time}
                           onValueChange={(value) => handleInputChange('preferred_class_time', value)}
                         >
-                          <SelectTrigger className="border-rose-200 focus:border-rose-400">
+                          <SelectTrigger id="preferred-class-time" className="border-rose-200 focus:border-rose-400">
                             <SelectValue placeholder="Select a class time" />
                           </SelectTrigger>
                           <SelectContent>
                             {classSchedules.map((schedule) => (
-                              <SelectItem key={schedule.id} value={schedule.id}> {/* Assuming schedule has a unique 'id' */}
+                              <SelectItem key={schedule.id} value={schedule.id}>
                                 {formatClassTime(schedule)}
                               </SelectItem>
                             ))}
@@ -713,9 +712,9 @@ Registration Date: ${new Date().toLocaleString()}
                       </h3>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="emergency_contact">Emergency Contact</Label>
+                          <Label htmlFor="emergency-contact">Emergency Contact</Label>
                           <Input
-                            id="emergency_contact"
+                            id="emergency-contact"
                             value={formData.emergency_contact}
                             onChange={(e) => handleInputChange('emergency_contact', e.target.value)}
                             placeholder="Name and phone number"
@@ -723,9 +722,9 @@ Registration Date: ${new Date().toLocaleString()}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="special_notes">Special Notes or Needs</Label>
+                          <Label htmlFor="special-notes">Special Notes or Needs</Label>
                           <Textarea
-                            id="special_notes"
+                            id="special-notes"
                             value={formData.special_notes}
                             onChange={(e) => handleInputChange('special_notes', e.target.value)}
                             placeholder="Any allergies, special needs, or information we should know..."
