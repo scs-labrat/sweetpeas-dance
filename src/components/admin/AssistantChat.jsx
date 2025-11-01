@@ -282,35 +282,54 @@ export default function AssistantChat({ isOpen, onClose }) {
     setIsSpeaking(true);
 
     try {
+      console.log('Calling text-to-speech function...');
       // Call the backend function using base44.functions.invoke
       const response = await base44.functions.invoke('textToSpeech', { text: cleanText });
+      console.log('Text-to-speech response:', response);
       
-      // Create blob from response data
-      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      // Check if response.data is already a Blob or needs to be converted
+      let audioBlob;
+      if (response.data instanceof Blob) {
+        audioBlob = response.data;
+      } else if (response.data instanceof ArrayBuffer) {
+        audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      } else {
+        // If it's raw data, assume it can be used to create a blob directly
+        // This might need further refinement based on the exact type returned by base44.functions.invoke
+        audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('Audio URL created:', audioUrl);
       
       // Create and play audio
       if (audioRef.current) {
         audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
+        if (audioRef.current.src) { // Check if src exists before revoking
+          URL.revokeObjectURL(audioRef.current.src);
+        }
       }
       
       audioRef.current = new Audio(audioUrl);
       audioRef.current.onended = () => {
+        console.log('Audio playback ended');
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
       };
-      audioRef.current.onerror = () => {
+      audioRef.current.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
         toast.error('Failed to play audio');
       };
       
+      console.log('Starting audio playback...');
       await audioRef.current.play();
+      console.log('Audio playing');
     } catch (error) {
       console.error('Text-to-speech error:', error);
       setIsSpeaking(false);
-      toast.error('Failed to generate speech');
+      toast.error(`Failed to generate speech: ${error.message}`); // Display specific error message
     }
   };
 
