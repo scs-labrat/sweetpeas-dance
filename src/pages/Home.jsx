@@ -212,12 +212,19 @@ Registration Date: ${new Date().toLocaleString()}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="mb-12"
           >
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/user_680f435d46c180e210e2aa08d/c3cf18e3a_image.png"
-              alt="Sweetpeas Creative Dance Class"
-              className="w-full max-w-md mx-auto mb-8 drop-shadow-2xl"
-            />
+            {/* Beautiful decorative heading with flowers */}
+            <div className="relative inline-block">
+              <div className="text-7xl md:text-9xl font-bold bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500 bg-clip-text text-transparent mb-4">
+                Sweetpeas
+              </div>
+              <div className="flex items-center justify-center gap-2 text-2xl md:text-3xl text-rose-600 font-light">
+                <span className="text-3xl">🌸</span>
+                <span>Creative Dance Class</span>
+                <span className="text-3xl">🌸</span>
+              </div>
+            </div>
           </motion.div>
 
           <motion.h1
