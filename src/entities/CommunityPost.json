@@ -1,0 +1,39 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "author_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the post author"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of the author"
+    },
+    "is_studio_post": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when posted by the studio/admin rather than a parent"
+    },
+    "content": {
+      "type": "string",
+      "description": "Post text content"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Optional attached photo URL"
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of members who liked this post"
+    }
+  },
+  "required": [
+    "author_email",
+    "content"
+  ]
+}

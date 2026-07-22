@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Sparkles, Heart, Music, Star, Phone, Mail, MapPin, Clock, Calendar, Users, Send, CheckCircle } from "lucide-react";
+import { Sparkles, Heart, Music, Star, Phone, Mail, MapPin, Clock, Calendar, Users, Send, CheckCircle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,6 +66,10 @@ export default function Home() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
@@ -86,6 +91,12 @@ export default function Home() {
   const { data: studioInfo = [] } = useQuery({
     queryKey: ['studioInfo'],
     queryFn: () => base44.entities.StudioInfo.list(),
+    initialData: [],
+  });
+
+  const { data: activePromoCodes = [] } = useQuery({
+    queryKey: ['promoCodes', 'active'],
+    queryFn: () => base44.entities.PromoCode.filter({ is_active: true }),
     initialData: [],
   });
 
@@ -115,6 +126,25 @@ export default function Home() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleApplyPromo = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const match = activePromoCodes.find((p) => p.code.toUpperCase() === promoCodeInput.trim().toUpperCase());
+    if (!match) {
+      toast.error("That promo code wasn't found");
+      return;
+    }
+    if (match.valid_until && match.valid_until < today) {
+      toast.error('That promo code has expired');
+      return;
+    }
+    if (match.max_uses && (match.used_count || 0) >= match.max_uses) {
+      toast.error('That promo code has reached its usage limit');
+      return;
+    }
+    setAppliedPromo(match);
+    toast.success(`Code applied: ${match.discount_type === 'percent' ? `${match.discount_value}% off` : `$${match.discount_value} off`}`);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -122,11 +152,32 @@ export default function Home() {
     try {
       const registrationData = {
         ...formData,
-        child_age: parseInt(formData.child_age)
+        child_age: parseInt(formData.child_age),
+        source: referralCode ? 'referral' : 'website',
+        referral_code: referralCode || undefined,
+        promo_code_used: appliedPromo?.code || undefined,
       };
-      
-      await base44.entities.Registration.create(registrationData);
-      
+
+      const registration = await base44.entities.Registration.create(registrationData);
+
+      if (referralCode) {
+        const referrers = await base44.entities.ParentProfile.filter({ referral_code: referralCode });
+        if (referrers[0]) {
+          await base44.entities.Referral.create({
+            referral_code: referralCode,
+            referrer_email: referrers[0].user_email,
+            referrer_name: referrers[0].full_name,
+            referred_name: formData.child_name,
+            registration_id: registration.id,
+            status: 'pending',
+          });
+        }
+      }
+
+      if (appliedPromo) {
+        await base44.entities.PromoCode.update(appliedPromo.id, { used_count: (appliedPromo.used_count || 0) + 1 });
+      }
+
       const selectedClass = classSchedules.find(s => s.id === formData.preferred_class_time);
       const classTimeFormatted = selectedClass ? formatClassTime(selectedClass) : 'Not selected or invalid class ID';
       
@@ -172,6 +223,8 @@ Registration Date: ${new Date().toLocaleString()}
         emergency_contact: "",
         special_notes: ""
       });
+      setPromoCodeInput('');
+      setAppliedPromo(null);
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Something went wrong. Please try again.");
@@ -738,6 +791,28 @@ Registration Date: ${new Date().toLocaleString()}
                             rows={4}
                             className="border-rose-200 focus:border-rose-400"
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor="promo-code">Promo Code</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="promo-code"
+                              value={promoCodeInput}
+                              onChange={(e) => setPromoCodeInput(e.target.value)}
+                              placeholder="Have a code? Enter it here"
+                              className="border-rose-200 focus:border-rose-400"
+                              disabled={!!appliedPromo}
+                            />
+                            <Button type="button" variant="outline" onClick={handleApplyPromo} disabled={!promoCodeInput.trim() || !!appliedPromo}>
+                              Apply
+                            </Button>
+                          </div>
+                          {appliedPromo && (
+                            <p className="text-sm text-green-700 mt-2 flex items-center gap-1">
+                              <Tag className="w-3 h-3" />
+                              {appliedPromo.code} applied — {appliedPromo.discount_type === 'percent' ? `${appliedPromo.discount_value}% off` : `$${appliedPromo.discount_value} off`}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

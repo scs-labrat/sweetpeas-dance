@@ -1,0 +1,51 @@
+{
+  "name": "PromoCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "The code parents enter, e.g. 'EARLYBIRD10'"
+    },
+    "description": {
+      "type": "string",
+      "description": "Internal description, e.g. 'Early-bird term registration'"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percent",
+        "fixed"
+      ],
+      "default": "percent",
+      "description": "Whether the discount is a percentage or a fixed dollar amount"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "The discount amount (e.g. 10 for 10% or $10 off)"
+    },
+    "max_uses": {
+      "type": "number",
+      "description": "Maximum number of times this code can be used, leave blank for unlimited"
+    },
+    "used_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times this code has been used so far"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "description": "Last date this code can be used, leave blank for no expiry"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this code can currently be redeemed"
+    }
+  },
+  "required": [
+    "code",
+    "discount_type",
+    "discount_value"
+  ]
+}

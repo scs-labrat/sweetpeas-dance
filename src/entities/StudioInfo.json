@@ -41,6 +41,18 @@
         }
       },
       "description": "Studio hours by day"
+    },
+    "facebook_page_url": {
+      "type": "string",
+      "description": "Full URL of the studio's public Facebook Page, used to embed a live feed"
+    },
+    "instagram_handle": {
+      "type": "string",
+      "description": "Instagram username, without the @"
+    },
+    "tiktok_handle": {
+      "type": "string",
+      "description": "TikTok username, without the @"
     }
   },
   "required": [

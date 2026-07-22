@@ -54,6 +54,19 @@
       ],
       "default": "pending",
       "description": "Registration status"
+    },
+    "source": {
+      "type": "string",
+      "default": "website",
+      "description": "Where this lead came from, e.g. 'website', 'landing_page:free-trial', 'referral'"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "Referral code used, if this lead came from a referral"
+    },
+    "promo_code_used": {
+      "type": "string",
+      "description": "Promo code applied at registration, if any"
     }
   },
   "required": [

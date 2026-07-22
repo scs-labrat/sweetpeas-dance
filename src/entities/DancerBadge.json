@@ -1,0 +1,39 @@
+{
+  "name": "DancerBadge",
+  "type": "object",
+  "properties": {
+    "dancer_id": {
+      "type": "string",
+      "description": "ID of the DancerProfile this badge was awarded to"
+    },
+    "badge_key": {
+      "type": "string",
+      "description": "Catalog key for this badge type"
+    },
+    "badge_name": {
+      "type": "string",
+      "description": "Display name of the badge"
+    },
+    "badge_icon": {
+      "type": "string",
+      "description": "Emoji or short icon representing the badge"
+    },
+    "awarded_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the badge was awarded"
+    },
+    "awarded_by": {
+      "type": "string",
+      "description": "Name of the admin/teacher who awarded it"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional personal note about why this badge was earned"
+    }
+  },
+  "required": [
+    "dancer_id",
+    "badge_name"
+  ]
+}

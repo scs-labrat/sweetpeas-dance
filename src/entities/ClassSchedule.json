@@ -2,6 +2,10 @@
   "name": "ClassSchedule",
   "type": "object",
   "properties": {
+    "class_name": {
+      "type": "string",
+      "description": "Display name for the class (e.g., Tiny Twirlers)"
+    },
     "day_of_week": {
       "type": "string",
       "enum": [
@@ -26,6 +30,17 @@
     "age_range": {
       "type": "string",
       "description": "Age range for the class (e.g., 3-5 years)"
+    },
+    "skill_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "all_levels"
+      ],
+      "default": "all_levels",
+      "description": "Skill level required for this class"
     },
     "max_students": {
       "type": "number",

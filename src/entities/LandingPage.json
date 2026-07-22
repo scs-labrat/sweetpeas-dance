@@ -1,0 +1,80 @@
+{
+  "name": "LandingPage",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly identifier, e.g. 'free-trial'"
+    },
+    "title": {
+      "type": "string",
+      "description": "Internal name for this landing page"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "heading",
+              "paragraph",
+              "image",
+              "button",
+              "divider"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "alignment": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          }
+        }
+      },
+      "description": "Ordered content blocks"
+    },
+    "cta_text": {
+      "type": "string",
+      "default": "Claim My Spot",
+      "description": "Submit button label on the lead capture form"
+    },
+    "promo_code": {
+      "type": "string",
+      "description": "Promo code automatically applied to registrations from this page"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "default": "draft",
+      "description": "Whether this page is publicly visible"
+    },
+    "view_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times this page has been viewed"
+    },
+    "submission_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of leads captured from this page"
+    }
+  },
+  "required": [
+    "slug",
+    "title"
+  ]
+}

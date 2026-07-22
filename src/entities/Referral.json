@@ -1,0 +1,45 @@
+{
+  "name": "Referral",
+  "type": "object",
+  "properties": {
+    "referral_code": {
+      "type": "string",
+      "description": "The referrer's code that was used"
+    },
+    "referrer_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the parent who referred this family"
+    },
+    "referrer_name": {
+      "type": "string",
+      "description": "Name of the referring parent"
+    },
+    "referred_name": {
+      "type": "string",
+      "description": "Name of the referred parent or child"
+    },
+    "registration_id": {
+      "type": "string",
+      "description": "ID of the Registration created via this referral"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "converted",
+        "rewarded"
+      ],
+      "default": "pending",
+      "description": "pending = just registered, converted = enrolled, rewarded = referrer has been given their reward"
+    },
+    "reward_note": {
+      "type": "string",
+      "description": "Note about what reward was given, e.g. a promo code"
+    }
+  },
+  "required": [
+    "referral_code",
+    "referrer_email"
+  ]
+}

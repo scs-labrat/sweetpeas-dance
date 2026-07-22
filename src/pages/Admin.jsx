@@ -28,16 +28,35 @@ import {
   Send,
   Loader2,
   CalendarCheck,
-  Star
+  Star,
+  Search,
+  UserPlus,
+  Bell,
+  ListPlus,
+  Inbox,
+  Megaphone,
+  BellRing,
+  Share2,
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import CalendarView from "../components/admin/CalendarView";
 import AssistantChat from "../components/admin/AssistantChat";
+import CampaignBuilder from "../components/admin/CampaignBuilder";
+import SequenceManager from "../components/admin/SequenceManager";
+import SocialScheduler from "../components/admin/SocialScheduler";
+import CommunityFeed from "../components/CommunityFeed";
+import ResourceLibrary from "../components/ResourceLibrary";
+import LandingPageBuilder from "../components/admin/LandingPageBuilder";
+import ReferralManager from "../components/admin/ReferralManager";
+import PromoCodeManager from "../components/admin/PromoCodeManager";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import ReactMarkdown from 'react-markdown';
 import { format, isSameDay, parseISO } from 'date-fns';
+import ShareButtons from "@/components/ShareButtons";
+import { createPageUrl } from "@/utils";
 
 const EVENT_COLORS = {
   class: 'bg-blue-100 border-blue-300 text-blue-800',
@@ -46,6 +65,22 @@ const EVENT_COLORS = {
   deadline: 'bg-red-100 border-red-300 text-red-800',
   other: 'bg-gray-100 border-gray-300 text-gray-800',
 };
+
+const STATUS_BADGE_STYLES = {
+  active: 'bg-green-100 text-green-700',
+  waitlisted: 'bg-orange-100 text-orange-700',
+  cancelled: 'bg-gray-100 text-gray-700',
+  completed: 'bg-blue-100 text-blue-700',
+};
+
+const BADGE_CATALOG = [
+  { key: 'rising_star', name: 'Rising Star', icon: '⭐', description: 'Showing wonderful progress' },
+  { key: 'perfect_attendance', name: 'Perfect Attendance', icon: '🎯', description: "Didn't miss a class all term" },
+  { key: 'pirouette_pro', name: 'Pirouette Pro', icon: '🩰', description: 'Mastered the pirouette' },
+  { key: 'team_player', name: 'Team Player', icon: '🤝', description: 'Always encouraging classmates' },
+  { key: 'most_improved', name: 'Most Improved', icon: '🌱', description: 'Incredible growth this term' },
+  { key: 'confidence_star', name: 'Confidence Star', icon: '💪', description: 'Dancing with pride and confidence' },
+];
 
 function Admin() {
   const [user, setUser] = useState(null);
@@ -73,7 +108,45 @@ function Admin() {
     recipients: 'all'
   });
   const [tagInput, setTagInput] = useState('');
-  
+
+  // Schedule management
+  const [showClassDialog, setShowClassDialog] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [classForm, setClassForm] = useState({
+    class_name: '',
+    day_of_week: 'monday',
+    start_time: '',
+    end_time: '',
+    age_range: '',
+    skill_level: 'all_levels',
+    max_students: '',
+    is_active: true
+  });
+
+  // Students & Parents directory
+  const [studentSearch, setStudentSearch] = useState('');
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [badgeTargetDancer, setBadgeTargetDancer] = useState(null);
+  const [selectedBadgeKey, setSelectedBadgeKey] = useState(BADGE_CATALOG[0].key);
+  const [badgeNote, setBadgeNote] = useState('');
+
+  // Registration -> Enrollment conversion
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertingRegistration, setConvertingRegistration] = useState(null);
+  const [convertClassId, setConvertClassId] = useState('');
+
+  // Messaging
+  const [activeConversationId, setActiveConversationId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [broadcastForm, setBroadcastForm] = useState({
+    segment: 'all',
+    classId: '',
+    skillLevel: 'beginner',
+    channel: 'email',
+    subject: '',
+    body: ''
+  });
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -125,6 +198,50 @@ function Admin() {
     enabled: !!user,
   });
 
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments'],
+    queryFn: () => base44.entities.Enrollment.list('-enrolled_date'),
+    enabled: !!user,
+  });
+
+  const { data: dancers = [] } = useQuery({
+    queryKey: ['dancers'],
+    queryFn: () => base44.entities.DancerProfile.list(),
+    enabled: !!user,
+  });
+
+  const { data: parentProfiles = [] } = useQuery({
+    queryKey: ['parentProfiles'],
+    queryFn: () => base44.entities.ParentProfile.list(),
+    enabled: !!user,
+  });
+
+  const { data: dancerBadges = [] } = useQuery({
+    queryKey: ['dancerBadges'],
+    queryFn: () => base44.entities.DancerBadge.list(),
+    enabled: !!user,
+  });
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => base44.entities.Conversation.list('-last_message_at'),
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  const { data: threadMessages = [] } = useQuery({
+    queryKey: ['messages', activeConversationId],
+    queryFn: () => base44.entities.Message.filter({ conversation_id: activeConversationId }),
+    enabled: !!user && !!activeConversationId,
+    refetchInterval: 10000,
+  });
+
+  const { data: broadcasts = [] } = useQuery({
+    queryKey: ['broadcasts'],
+    queryFn: () => base44.entities.Broadcast.list('-created_date'),
+    enabled: !!user,
+  });
+
   // Get today's events
   const todayEvents = calendarEvents.filter(event => {
     const eventDate = new Date(event.start_date);
@@ -169,6 +286,343 @@ Format: Just the horoscope text, no title or label.`;
       queryClient.invalidateQueries(['registrations']);
       toast.success('Registration status updated');
     },
+  });
+
+  const createClassMutation = useMutation({
+    mutationFn: (data) => base44.entities.ClassSchedule.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['classSchedules']);
+      setShowClassDialog(false);
+      resetClassForm();
+      toast.success('Class created');
+    },
+  });
+
+  const updateClassMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ClassSchedule.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['classSchedules']);
+      setShowClassDialog(false);
+      resetClassForm();
+      toast.success('Class updated');
+    },
+  });
+
+  const deleteClassMutation = useMutation({
+    mutationFn: (id) => base44.entities.ClassSchedule.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['classSchedules']);
+      toast.success('Class deleted');
+    },
+  });
+
+  const promoteEnrollmentMutation = useMutation({
+    mutationFn: async (enrollment) => {
+      await base44.entities.Enrollment.update(enrollment.id, { status: 'active', waitlist_position: null });
+      await base44.integrations.Core.SendEmail({
+        from_name: "Sweetpeas Dance Studio",
+        to: enrollment.parent_email,
+        subject: `A spot opened up for ${enrollment.dancer_name}! 🌸`,
+        body: `Great news! A spot has opened up in the class ${enrollment.dancer_name} was waitlisted for, and we've confirmed their enrollment. See you in class!`
+      });
+      return enrollment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['enrollments']);
+      toast.success('Promoted from waitlist and parent notified by email');
+    },
+    onError: () => toast.error('Failed to promote from waitlist'),
+  });
+
+  const convertRegistrationMutation = useMutation({
+    mutationFn: async ({ registration, classScheduleId }) => {
+      let parent = parentProfiles.find((p) => p.user_email === registration.parent_email);
+      if (!parent) {
+        parent = await base44.entities.ParentProfile.create({
+          user_email: registration.parent_email,
+          full_name: registration.parent_name,
+          phone: registration.parent_phone || '',
+          emergency_contact: registration.emergency_contact || '',
+        });
+      }
+
+      const dancer = await base44.entities.DancerProfile.create({
+        parent_email: registration.parent_email,
+        name: registration.child_name,
+        birthdate: registration.child_birthdate || undefined,
+        notes: registration.special_notes || '',
+      });
+
+      const schedule = classSchedules.find((c) => c.id === classScheduleId);
+      const activeCount = enrollments.filter((e) => e.class_schedule_id === classScheduleId && e.status === 'active').length;
+      const isFull = schedule?.max_students && activeCount >= schedule.max_students;
+
+      await base44.entities.Enrollment.create({
+        dancer_id: dancer.id,
+        dancer_name: dancer.name,
+        parent_email: registration.parent_email,
+        class_schedule_id: classScheduleId,
+        status: isFull ? 'waitlisted' : 'active',
+        enrolled_date: format(new Date(), 'yyyy-MM-dd'),
+      });
+
+      return { isFull };
+    },
+    onSuccess: ({ isFull }) => {
+      queryClient.invalidateQueries(['enrollments']);
+      queryClient.invalidateQueries(['dancers']);
+      queryClient.invalidateQueries(['parentProfiles']);
+      setShowConvertDialog(false);
+      setConvertingRegistration(null);
+      setConvertClassId('');
+      toast.success(isFull ? 'Converted to enrollment — class is full, added to waitlist' : 'Converted to active enrollment');
+    },
+    onError: () => toast.error('Failed to convert registration'),
+  });
+
+  const resetClassForm = () => {
+    setClassForm({
+      class_name: '',
+      day_of_week: 'monday',
+      start_time: '',
+      end_time: '',
+      age_range: '',
+      skill_level: 'all_levels',
+      max_students: '',
+      is_active: true
+    });
+    setSelectedClass(null);
+  };
+
+  const handleCreateClass = () => {
+    resetClassForm();
+    setShowClassDialog(true);
+  };
+
+  const handleEditClass = (schedule) => {
+    setSelectedClass(schedule);
+    setClassForm({
+      class_name: schedule.class_name || '',
+      day_of_week: schedule.day_of_week,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      age_range: schedule.age_range || '',
+      skill_level: schedule.skill_level || 'all_levels',
+      max_students: schedule.max_students || '',
+      is_active: schedule.is_active
+    });
+    setShowClassDialog(true);
+  };
+
+  const handleSaveClass = () => {
+    if (!classForm.day_of_week || !classForm.start_time || !classForm.end_time) {
+      toast.error('Please fill in day, start time, and end time');
+      return;
+    }
+    const data = { ...classForm, max_students: classForm.max_students ? Number(classForm.max_students) : undefined };
+    if (selectedClass) {
+      updateClassMutation.mutate({ id: selectedClass.id, data });
+    } else {
+      createClassMutation.mutate(data);
+    }
+  };
+
+  const openConvertDialog = (registration) => {
+    setConvertingRegistration(registration);
+    setConvertClassId('');
+    setShowConvertDialog(true);
+  };
+
+  const openBadgeDialog = (dancer) => {
+    setBadgeTargetDancer(dancer);
+    setSelectedBadgeKey(BADGE_CATALOG[0].key);
+    setBadgeNote('');
+    setShowBadgeDialog(true);
+  };
+
+  const awardBadgeMutation = useMutation({
+    mutationFn: () => {
+      const badge = BADGE_CATALOG.find((b) => b.key === selectedBadgeKey);
+      return base44.entities.DancerBadge.create({
+        dancer_id: badgeTargetDancer.id,
+        badge_key: badge.key,
+        badge_name: badge.name,
+        badge_icon: badge.icon,
+        awarded_date: format(new Date(), 'yyyy-MM-dd'),
+        awarded_by: user?.full_name || 'Admin',
+        note: badgeNote,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['dancerBadges']);
+      setShowBadgeDialog(false);
+      toast.success(`Badge awarded to ${badgeTargetDancer.name}! 🎉`);
+    },
+  });
+
+  const openConversationMutation = useMutation({
+    mutationFn: (conversation) => base44.entities.Conversation.update(conversation.id, { unread_by_admin: false }),
+    onSuccess: () => queryClient.invalidateQueries(['conversations']),
+  });
+
+  const selectConversation = (conversation) => {
+    setActiveConversationId(conversation.id);
+    setReplyText('');
+    if (conversation.unread_by_admin) {
+      openConversationMutation.mutate(conversation);
+    }
+  };
+
+  const sendReplyMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Message.create({
+        conversation_id: activeConversationId,
+        sender_role: 'admin',
+        sender_name: user?.full_name || 'Sweetpeas Dance Studio',
+        body: replyText,
+      });
+      await base44.entities.Conversation.update(activeConversationId, {
+        last_message_at: new Date().toISOString(),
+        last_message_preview: replyText.slice(0, 140),
+        unread_by_admin: false,
+        unread_by_parent: true,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', activeConversationId] });
+      queryClient.invalidateQueries(['conversations']);
+      setReplyText('');
+    },
+    onError: () => toast.error('Failed to send reply'),
+  });
+
+  const closeConversationMutation = useMutation({
+    mutationFn: (id) => base44.entities.Conversation.update(id, { status: 'closed' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['conversations']);
+      toast.success('Conversation closed');
+    },
+  });
+
+  const getBroadcastRecipients = () => {
+    let matchedDancers = [];
+    let label = '';
+
+    if (broadcastForm.segment === 'all') {
+      matchedDancers = dancers;
+      label = 'All Families';
+    } else if (broadcastForm.segment === 'class') {
+      const schedule = classSchedules.find((c) => c.id === broadcastForm.classId);
+      const activeParentEmails = new Set(
+        enrollments.filter((e) => e.class_schedule_id === broadcastForm.classId && e.status === 'active').map((e) => e.parent_email)
+      );
+      matchedDancers = dancers.filter((d) => activeParentEmails.has(d.parent_email));
+      label = schedule ? `${schedule.class_name || schedule.day_of_week} class` : 'Selected class';
+    } else if (broadcastForm.segment === 'skill') {
+      matchedDancers = dancers.filter((d) => d.skill_level === broadcastForm.skillLevel);
+      label = `${broadcastForm.skillLevel} dancers`;
+    } else if (broadcastForm.segment === 'waitlist') {
+      const waitlistedEmails = new Set(enrollments.filter((e) => e.status === 'waitlisted').map((e) => e.parent_email));
+      matchedDancers = dancers.filter((d) => waitlistedEmails.has(d.parent_email));
+      label = 'Waitlisted families';
+    }
+
+    const unsubscribedEmails = new Set(parentProfiles.filter((p) => p.unsubscribed).map((p) => p.user_email));
+    const uniqueEmails = [...new Set(matchedDancers.map((d) => d.parent_email))].filter((email) => !unsubscribedEmails.has(email));
+    return { uniqueEmails, label };
+  };
+
+  const sendBroadcastMutation = useMutation({
+    mutationFn: async () => {
+      const { uniqueEmails, label } = getBroadcastRecipients();
+      if (uniqueEmails.length === 0) {
+        throw new Error('No recipients matched this segment');
+      }
+
+      let sentCount = 0;
+      if (broadcastForm.channel === 'email') {
+        await Promise.all(uniqueEmails.map((email) =>
+          base44.integrations.Core.SendEmail({
+            from_name: 'Sweetpeas Dance Studio',
+            to: email,
+            subject: broadcastForm.subject,
+            body: broadcastForm.body,
+          })
+        ));
+        sentCount = uniqueEmails.length;
+      } else {
+        const recipientsWithPhone = uniqueEmails
+          .map((email) => parentProfiles.find((p) => p.user_email === email))
+          .filter((p) => p?.phone);
+        await Promise.all(recipientsWithPhone.map((p) =>
+          base44.integrations.Core.SendSMS({ to: p.phone, body: broadcastForm.body })
+        ));
+        sentCount = recipientsWithPhone.length;
+      }
+
+      await base44.entities.Broadcast.create({
+        type: broadcastForm.segment === 'all' ? 'broadcast' : 'segmented',
+        channel: broadcastForm.channel,
+        subject: broadcastForm.subject,
+        body: broadcastForm.body,
+        segment_label: label,
+        recipient_count: sentCount,
+        sent_by: user?.full_name || 'Admin',
+      });
+
+      return { sentCount, label };
+    },
+    onSuccess: ({ sentCount, label }) => {
+      queryClient.invalidateQueries(['broadcasts']);
+      setBroadcastForm({ segment: 'all', classId: '', skillLevel: 'beginner', channel: 'email', subject: '', body: '' });
+      toast.success(`Sent to ${sentCount} recipient(s) — ${label}`);
+    },
+    onError: (err) => toast.error(err.message || 'Failed to send broadcast'),
+  });
+
+  const sendClassRemindersMutation = useMutation({
+    mutationFn: async () => {
+      const tomorrow = new Date(Date.now() + 86400000);
+      const tomorrowDayName = format(tomorrow, 'EEEE').toLowerCase();
+      const classesTomorrow = activeClassSchedules.filter((c) => c.day_of_week === tomorrowDayName);
+
+      if (classesTomorrow.length === 0) {
+        throw new Error(`No active classes scheduled for ${format(tomorrow, 'EEEE')}`);
+      }
+
+      let totalSent = 0;
+      for (const schedule of classesTomorrow) {
+        const activeForClass = enrollments.filter((e) => e.class_schedule_id === schedule.id && e.status === 'active');
+        if (activeForClass.length === 0) continue;
+
+        await Promise.all(activeForClass.map((e) =>
+          base44.integrations.Core.SendEmail({
+            from_name: 'Sweetpeas Dance Studio',
+            to: e.parent_email,
+            subject: `Reminder: ${e.dancer_name}'s class is tomorrow!`,
+            body: `Hi there! Just a friendly reminder that ${e.dancer_name} has ${schedule.class_name || 'dance class'} tomorrow (${format(tomorrow, 'EEEE, MMMM d')}) from ${schedule.start_time} to ${schedule.end_time}. See you there! 🌸`,
+          })
+        ));
+        totalSent += activeForClass.length;
+
+        await base44.entities.Broadcast.create({
+          type: 'reminder',
+          channel: 'email',
+          subject: `Class reminder: ${schedule.class_name || schedule.day_of_week}`,
+          body: `Reminder sent to ${activeForClass.length} families for tomorrow's ${schedule.class_name || schedule.day_of_week} class.`,
+          segment_label: schedule.class_name || `${schedule.day_of_week}s ${schedule.start_time}`,
+          recipient_count: activeForClass.length,
+          sent_by: user?.full_name || 'Admin',
+        });
+      }
+
+      return totalSent;
+    },
+    onSuccess: (totalSent) => {
+      queryClient.invalidateQueries(['broadcasts']);
+      toast.success(`Sent ${totalSent} class reminder(s) for tomorrow`);
+    },
+    onError: (err) => toast.error(err.message || 'Failed to send reminders'),
   });
 
   const createBlogMutation = useMutation({
@@ -384,6 +838,17 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
         })
       ));
 
+      await base44.entities.Broadcast.create({
+        type: 'newsletter',
+        channel: 'email',
+        subject: newsletterForm.subject,
+        body: newsletterForm.content,
+        segment_label: newsletterForm.recipients === 'all' ? 'All Parents' : newsletterForm.recipients === 'confirmed' ? 'Confirmed Only' : 'Pending Only',
+        recipient_count: recipients.length,
+        sent_by: user?.full_name || 'Admin',
+      });
+      queryClient.invalidateQueries(['broadcasts']);
+
       toast.success(`Newsletter sent to ${recipients.length} recipients!`);
       setShowNewsletterDialog(false);
       setNewsletterForm({ subject: '', content: '', recipients: 'all' });
@@ -416,6 +881,10 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
   const confirmedCount = registrations.filter(r => r.status === 'confirmed').length;
   const publishedBlogs = blogPosts.filter(b => b.status === 'published').length;
   const draftBlogs = blogPosts.filter(b => b.status === 'draft').length;
+  const activeEnrollmentCount = enrollments.filter(e => e.status === 'active').length;
+  const waitlistedCount = enrollments.filter(e => e.status === 'waitlisted').length;
+  const activeClassSchedules = classSchedules.filter(c => c.is_active);
+  const unreadConversationCount = conversations.filter(c => c.unread_by_admin).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 py-8 px-4">
@@ -483,11 +952,38 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
           <TabsList className="bg-white/80 backdrop-blur-sm border border-rose-200">
             <TabsTrigger value="today" className="data-[state=active]:bg-rose-100">
               <CalendarCheck className="w-4 h-4 mr-2" />
-              Today
+              Overview
             </TabsTrigger>
             <TabsTrigger value="registrations" className="data-[state=active]:bg-rose-100">
               <Users className="w-4 h-4 mr-2" />
               Registrations
+            </TabsTrigger>
+            <TabsTrigger value="students" className="data-[state=active]:bg-rose-100">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Students & Parents
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-rose-100">
+              <Inbox className="w-4 h-4 mr-2" />
+              Messages
+              {unreadConversationCount > 0 && (
+                <Badge className="ml-2 bg-red-500 text-white">{unreadConversationCount}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="data-[state=active]:bg-rose-100">
+              <Mail className="w-4 h-4 mr-2" />
+              Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="social" className="data-[state=active]:bg-rose-100">
+              <Share2 className="w-4 h-4 mr-2" />
+              Social
+            </TabsTrigger>
+            <TabsTrigger value="community" className="data-[state=active]:bg-rose-100">
+              <Users className="w-4 h-4 mr-2" />
+              Community
+            </TabsTrigger>
+            <TabsTrigger value="growth" className="data-[state=active]:bg-rose-100">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Growth
             </TabsTrigger>
             <TabsTrigger value="calendar" className="data-[state=active]:bg-rose-100">
               <Calendar className="w-4 h-4 mr-2" />
@@ -598,24 +1094,67 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
                   <CardTitle className="text-rose-800">Today's Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-4 gap-4">
+                  <div className="grid md:grid-cols-5 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-blue-600 font-medium">Events Today</p>
                       <p className="text-3xl font-bold text-blue-800">{todayEvents.length}</p>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-600 font-medium">Pending Reviews</p>
+                      <p className="text-sm text-green-600 font-medium">New Inquiries</p>
                       <p className="text-3xl font-bold text-green-800">{pendingCount}</p>
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-sm text-purple-600 font-medium">Active Students</p>
-                      <p className="text-3xl font-bold text-purple-800">{confirmedCount}</p>
+                      <p className="text-sm text-purple-600 font-medium">Active Enrollments</p>
+                      <p className="text-3xl font-bold text-purple-800">{activeEnrollmentCount}</p>
                     </div>
-                    <div className="text-center p-4 bg-rose-50 rounded-lg">
-                      <p className="text-sm text-rose-600 font-medium">Draft Blogs</p>
-                      <p className="text-3xl font-bold text-rose-800">{draftBlogs}</p>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <p className="text-sm text-orange-600 font-medium">On Waitlists</p>
+                      <p className="text-3xl font-bold text-orange-800">{waitlistedCount}</p>
+                    </div>
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <p className="text-sm text-red-600 font-medium">Unread Messages</p>
+                      <p className="text-3xl font-bold text-red-800">{unreadConversationCount}</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Upcoming Classes This Week */}
+              <Card className="md:col-span-2 bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-rose-800 flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    This Week's Classes
+                  </CardTitle>
+                  <CardDescription>All active classes and how full they are</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {activeClassSchedules.length > 0 ? (
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {activeClassSchedules.map((schedule) => {
+                        const activeCount = enrollments.filter((e) => e.class_schedule_id === schedule.id && e.status === 'active').length;
+                        const isFull = schedule.max_students && activeCount >= schedule.max_students;
+                        return (
+                          <div key={schedule.id} className="flex items-center justify-between p-3 rounded-lg border border-rose-100 bg-rose-50/50">
+                            <div>
+                              <p className="font-medium text-gray-800 capitalize">
+                                {schedule.class_name || schedule.day_of_week} <span className="text-gray-500 text-sm">· {schedule.day_of_week}s</span>
+                              </p>
+                              <p className="text-sm text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
+                            </div>
+                            <Badge className={isFull ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}>
+                              {activeCount}{schedule.max_students ? `/${schedule.max_students}` : ''}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p>No active classes yet — add one in the Schedule tab</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -671,6 +1210,16 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
                                 Confirm
                               </Button>
                             )}
+                            {reg.status === 'confirmed' && (
+                              <Button
+                                size="sm"
+                                onClick={() => openConvertDialog(reg)}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <ListPlus className="w-4 h-4 mr-1" />
+                                Convert to Enrollment
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -695,6 +1244,436 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
             </Card>
           </TabsContent>
 
+          {/* Students & Parents Tab */}
+          <TabsContent value="students">
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-rose-800">Students & Parents Directory</CardTitle>
+                <CardDescription>Search all enrolled families by dancer, parent name, or email</CardDescription>
+                <div className="relative mt-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    placeholder="Search by dancer, parent, or email..."
+                    className="pl-9"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {dancers
+                    .filter((dancer) => {
+                      const parent = parentProfiles.find((p) => p.user_email === dancer.parent_email);
+                      const haystack = `${dancer.name} ${parent?.full_name || ''} ${dancer.parent_email}`.toLowerCase();
+                      return haystack.includes(studentSearch.toLowerCase());
+                    })
+                    .map((dancer) => {
+                      const parent = parentProfiles.find((p) => p.user_email === dancer.parent_email);
+                      const dancerEnrollments = enrollments.filter((e) => e.dancer_id === dancer.id);
+                      return (
+                        <Card key={dancer.id} className="border-rose-200/50">
+                          <CardContent className="p-6">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-lg font-semibold text-gray-800">{dancer.name}</h3>
+                                  {dancer.skill_level && (
+                                    <Badge variant="outline" className="capitalize">{dancer.skill_level}</Badge>
+                                  )}
+                                  {parent?.unsubscribed && (
+                                    <Badge className="bg-gray-200 text-gray-600">Unsubscribed from emails</Badge>
+                                  )}
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-600">
+                                  <p><span className="font-medium">Parent:</span> {parent?.full_name || 'No profile yet'}</p>
+                                  <p><span className="font-medium">Email:</span> {dancer.parent_email}</p>
+                                  <p><span className="font-medium">Phone:</span> {parent?.phone || 'N/A'}</p>
+                                  <p><span className="font-medium">Emergency:</span> {parent?.emergency_contact || 'N/A'}</p>
+                                  {dancer.notes && (
+                                    <p className="md:col-span-2"><span className="font-medium">Notes:</span> {dancer.notes}</p>
+                                  )}
+                                </div>
+                                {dancerEnrollments.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {dancerEnrollments.map((e) => {
+                                      const schedule = classSchedules.find((c) => c.id === e.class_schedule_id);
+                                      return (
+                                        <Badge key={e.id} className={STATUS_BADGE_STYLES[e.status] || 'bg-gray-100 text-gray-700'}>
+                                          {schedule ? `${schedule.class_name || schedule.day_of_week}` : 'Class'} · {e.status}
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                {dancerBadges.filter((b) => b.dancer_id === dancer.id).length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {dancerBadges.filter((b) => b.dancer_id === dancer.id).map((b) => (
+                                      <Badge key={b.id} variant="outline" className="border-purple-200 text-purple-700">
+                                        {b.badge_icon} {b.badge_name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline" onClick={() => openBadgeDialog(dancer)}>
+                                  🏅 Award Badge
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.location.href = `mailto:${dancer.parent_email}`}
+                                >
+                                  <Mail className="w-4 h-4 mr-1" />
+                                  Email
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  {dancers.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No students enrolled yet</p>
+                      <p className="text-sm mt-2">Convert a confirmed registration to get started</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages">
+            <Tabs defaultValue="inbox" className="space-y-4">
+              <TabsList className="bg-white border border-rose-100">
+                <TabsTrigger value="inbox">
+                  <Inbox className="w-4 h-4 mr-2" />
+                  Inbox
+                  {unreadConversationCount > 0 && (
+                    <Badge className="ml-2 bg-red-500 text-white">{unreadConversationCount}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="broadcast">
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  Broadcast
+                </TabsTrigger>
+                <TabsTrigger value="reminders">
+                  <BellRing className="w-4 h-4 mr-2" />
+                  Reminders
+                </TabsTrigger>
+                <TabsTrigger value="log">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Sent Log
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Inbox */}
+              <TabsContent value="inbox">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Card className="bg-white/80 backdrop-blur-sm md:col-span-1">
+                    <CardHeader>
+                      <CardTitle className="text-rose-800 text-base">Conversations</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y max-h-[500px] overflow-y-auto">
+                        {conversations.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => selectConversation(c)}
+                            className={`w-full text-left p-4 hover:bg-rose-50 transition-colors ${activeConversationId === c.id ? 'bg-rose-50' : ''}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-gray-800 truncate">{c.parent_name || c.parent_email}</p>
+                              {c.unread_by_admin && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">{c.last_message_preview}</p>
+                          </button>
+                        ))}
+                        {conversations.length === 0 && (
+                          <p className="p-6 text-center text-gray-500 text-sm">No conversations yet</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/80 backdrop-blur-sm md:col-span-2 flex flex-col">
+                    {activeConversationId ? (
+                      <>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                          <CardTitle className="text-rose-800 text-base">
+                            {conversations.find((c) => c.id === activeConversationId)?.parent_name ||
+                              conversations.find((c) => c.id === activeConversationId)?.parent_email}
+                          </CardTitle>
+                          <Button size="sm" variant="outline" onClick={() => closeConversationMutation.mutate(activeConversationId)}>
+                            Close Conversation
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col gap-3">
+                          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
+                            {[...threadMessages]
+                              .sort((a, b) => new Date(a.created_date) - new Date(b.created_date))
+                              .map((m) => (
+                                <div key={m.id} className={`flex ${m.sender_role === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                                  <div
+                                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                                      m.sender_role === 'admin' ? 'bg-rose-600 text-white' : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                  >
+                                    {m.body}
+                                  </div>
+                                </div>
+                              ))}
+                            {threadMessages.length === 0 && (
+                              <p className="text-center text-gray-500 text-sm py-8">No messages in this conversation yet</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 mt-auto">
+                            <Textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type a reply..."
+                              rows={2}
+                            />
+                            <Button
+                              onClick={() => sendReplyMutation.mutate()}
+                              disabled={!replyText.trim()}
+                              className="bg-rose-600 hover:bg-rose-700"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </>
+                    ) : (
+                      <CardContent className="flex-1 flex items-center justify-center text-gray-500 py-20">
+                        Select a conversation to view messages
+                      </CardContent>
+                    )}
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Broadcast */}
+              <TabsContent value="broadcast">
+                <Card className="bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-rose-800">Broadcast & Segmented Messaging</CardTitle>
+                    <CardDescription>Send an announcement to everyone, or target a specific class, skill level, or the waitlist</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Send To</Label>
+                        <Select value={broadcastForm.segment} onValueChange={(value) => setBroadcastForm({ ...broadcastForm, segment: value })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Families</SelectItem>
+                            <SelectItem value="class">Specific Class</SelectItem>
+                            <SelectItem value="skill">Skill Level</SelectItem>
+                            <SelectItem value="waitlist">Waitlisted Families</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Channel</Label>
+                        <Select value={broadcastForm.channel} onValueChange={(value) => setBroadcastForm({ ...broadcastForm, channel: value })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="sms">SMS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {broadcastForm.segment === 'class' && (
+                        <div className="md:col-span-2">
+                          <Label>Class</Label>
+                          <Select value={broadcastForm.classId} onValueChange={(value) => setBroadcastForm({ ...broadcastForm, classId: value })}>
+                            <SelectTrigger><SelectValue placeholder="Choose a class..." /></SelectTrigger>
+                            <SelectContent>
+                              {classSchedules.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.class_name ? `${c.class_name} — ` : ''}{c.day_of_week}s {c.start_time}-{c.end_time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {broadcastForm.segment === 'skill' && (
+                        <div className="md:col-span-2">
+                          <Label>Skill Level</Label>
+                          <Select value={broadcastForm.skillLevel} onValueChange={(value) => setBroadcastForm({ ...broadcastForm, skillLevel: value })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="beginner">Beginner</SelectItem>
+                              <SelectItem value="intermediate">Intermediate</SelectItem>
+                              <SelectItem value="advanced">Advanced</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    {broadcastForm.channel === 'email' && (
+                      <div>
+                        <Label>Subject</Label>
+                        <Input
+                          value={broadcastForm.subject}
+                          onChange={(e) => setBroadcastForm({ ...broadcastForm, subject: e.target.value })}
+                          placeholder="e.g. Studio closed for public holiday"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <Label>Message</Label>
+                      <Textarea
+                        value={broadcastForm.body}
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, body: e.target.value })}
+                        rows={6}
+                        placeholder="Write your message..."
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {(() => {
+                        const { uniqueEmails, label } = getBroadcastRecipients();
+                        return `Will send to ${uniqueEmails.length} recipient(s) — ${label}`;
+                      })()}
+                    </p>
+                    <Button
+                      onClick={() => sendBroadcastMutation.mutate()}
+                      disabled={
+                        !broadcastForm.body ||
+                        (broadcastForm.channel === 'email' && !broadcastForm.subject) ||
+                        (broadcastForm.segment === 'class' && !broadcastForm.classId)
+                      }
+                      className="bg-rose-600 hover:bg-rose-700"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Send
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Reminders */}
+              <TabsContent value="reminders">
+                <Card className="bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-rose-800">Class Reminders</CardTitle>
+                    <CardDescription>Send an email reminder to every family with an active enrollment in tomorrow&apos;s classes</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Tomorrow is <span className="font-medium">{format(new Date(Date.now() + 86400000), 'EEEE, MMMM d')}</span>.{' '}
+                      {activeClassSchedules.filter((c) => c.day_of_week === format(new Date(Date.now() + 86400000), 'EEEE').toLowerCase()).length} active class(es) scheduled.
+                    </p>
+                    <Button onClick={() => sendClassRemindersMutation.mutate()} className="bg-rose-600 hover:bg-rose-700">
+                      <BellRing className="w-4 h-4 mr-2" />
+                      Send Tomorrow&apos;s Class Reminders
+                    </Button>
+                    <p className="text-xs text-gray-500">
+                      Fee-due and recital rehearsal reminders will be available once billing and recital management are set up.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Sent Log */}
+              <TabsContent value="log">
+                <Card className="bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-rose-800">Sent Message Log</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {broadcasts.map((b) => (
+                        <div key={b.id} className="flex items-center justify-between p-3 border border-rose-100 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-800">{b.subject || b.segment_label}</p>
+                            <p className="text-xs text-gray-500">
+                              {b.segment_label} · {b.channel} · {b.recipient_count} recipient(s)
+                              {b.created_date && ` · ${new Date(b.created_date).toLocaleString()}`}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="capitalize">{b.type}</Badge>
+                        </div>
+                      ))}
+                      {broadcasts.length === 0 && (
+                        <p className="text-center text-gray-500 py-8 text-sm">Nothing sent yet</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* Campaigns Tab */}
+          <TabsContent value="campaigns">
+            <Tabs defaultValue="build" className="space-y-4">
+              <TabsList className="bg-white border border-rose-100">
+                <TabsTrigger value="build">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Build
+                </TabsTrigger>
+                <TabsTrigger value="sequences">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Sequences
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="build">
+                <CampaignBuilder />
+              </TabsContent>
+              <TabsContent value="sequences">
+                <SequenceManager />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* Social Tab */}
+          <TabsContent value="social">
+            <SocialScheduler />
+          </TabsContent>
+
+          {/* Community Tab */}
+          <TabsContent value="community">
+            <Tabs defaultValue="feed" className="space-y-4">
+              <TabsList className="bg-white border border-rose-100">
+                <TabsTrigger value="feed">Community Feed</TabsTrigger>
+                <TabsTrigger value="resources">Resource Library</TabsTrigger>
+              </TabsList>
+              <TabsContent value="feed">
+                <CommunityFeed currentUserEmail={user?.email} currentUserName={user?.full_name || 'Sweetpeas Dance Studio'} isAdmin />
+              </TabsContent>
+              <TabsContent value="resources">
+                <ResourceLibrary isAdmin />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* Growth Tab */}
+          <TabsContent value="growth">
+            <Tabs defaultValue="landing-pages" className="space-y-4">
+              <TabsList className="bg-white border border-rose-100">
+                <TabsTrigger value="landing-pages">Landing Pages</TabsTrigger>
+                <TabsTrigger value="referrals">Referrals</TabsTrigger>
+                <TabsTrigger value="promo-codes">Promo Codes</TabsTrigger>
+              </TabsList>
+              <TabsContent value="landing-pages">
+                <LandingPageBuilder />
+              </TabsContent>
+              <TabsContent value="referrals">
+                <ReferralManager />
+              </TabsContent>
+              <TabsContent value="promo-codes">
+                <PromoCodeManager />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
           {/* Calendar Tab */}
           <TabsContent value="calendar">
             <CalendarView />
@@ -703,33 +1682,93 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
           {/* Schedule Tab */}
           <TabsContent value="schedule">
             <Card className="bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-rose-800">Class Schedule Management</CardTitle>
-                <CardDescription>Manage your class times and schedule</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-rose-800">Class Schedule Management</CardTitle>
+                  <CardDescription>Create, edit, and manage classes, capacity, and waitlists</CardDescription>
+                </div>
+                <Button onClick={handleCreateClass} className="bg-rose-600 hover:bg-rose-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Class
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {classSchedules.map((schedule) => (
-                    <Card key={schedule.id} className="border-rose-200/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-gray-800 capitalize">{schedule.day_of_week}s</p>
-                            <p className="text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
-                            {schedule.age_range && (
-                              <p className="text-sm text-gray-500">Ages: {schedule.age_range}</p>
-                            )}
+                  {classSchedules.map((schedule) => {
+                    const classEnrollments = enrollments.filter((e) => e.class_schedule_id === schedule.id);
+                    const activeCount = classEnrollments.filter((e) => e.status === 'active').length;
+                    const waitlisted = classEnrollments.filter((e) => e.status === 'waitlisted');
+                    const isFull = schedule.max_students && activeCount >= schedule.max_students;
+
+                    return (
+                      <Card key={schedule.id} className="border-rose-200/50">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                {schedule.class_name || 'Untitled Class'} <span className="capitalize text-gray-500">· {schedule.day_of_week}s</span>
+                              </p>
+                              <p className="text-gray-600">{schedule.start_time} - {schedule.end_time}</p>
+                              <div className="flex flex-wrap gap-2 mt-1 text-sm text-gray-500">
+                                {schedule.age_range && <span>Ages: {schedule.age_range}</span>}
+                                {schedule.skill_level && <span className="capitalize">· {schedule.skill_level.replace('_', ' ')}</span>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={isFull ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}>
+                                {activeCount}{schedule.max_students ? `/${schedule.max_students}` : ''} enrolled
+                              </Badge>
+                              <Badge className={schedule.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                                {schedule.is_active ? 'Active' : 'Inactive'}
+                              </Badge>
+                              <Button size="sm" variant="outline" onClick={() => handleEditClass(schedule)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => {
+                                  if (confirm('Delete this class? This cannot be undone.')) {
+                                    deleteClassMutation.mutate(schedule.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <Badge className={schedule.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
-                            {schedule.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <p className="text-sm text-gray-500 mt-4">
-                    To add or edit classes, go to Dashboard → Data → ClassSchedule
-                  </p>
+
+                          {waitlisted.length > 0 && (
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+                              <p className="text-sm font-medium text-orange-800 flex items-center gap-2">
+                                <Bell className="w-4 h-4" /> Waitlist ({waitlisted.length})
+                              </p>
+                              {waitlisted.map((e) => (
+                                <div key={e.id} className="flex items-center justify-between text-sm">
+                                  <span>{e.dancer_name} <span className="text-gray-500">({e.parent_email})</span></span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-orange-700 border-orange-300"
+                                    onClick={() => promoteEnrollmentMutation.mutate(e)}
+                                  >
+                                    Promote & Notify
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                  {classSchedules.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No classes yet — add your first one!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1096,6 +2135,16 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
                   ))}
                 </div>
               )}
+              {selectedBlog?.status === 'published' && (
+                <div className="mt-6 pt-4 border-t not-prose">
+                  <p className="text-sm text-gray-500 mb-2">Share this post</p>
+                  <ShareButtons
+                    url={`${window.location.origin}${createPageUrl('Blog')}?post=${selectedBlog.id}`}
+                    title={selectedBlog.title}
+                    text={selectedBlog.excerpt || selectedBlog.title}
+                  />
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1160,6 +2209,199 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
               >
                 <Send className="w-4 h-4 mr-2" />
                 Send Newsletter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Class Dialog */}
+        <Dialog open={showClassDialog} onOpenChange={setShowClassDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedClass ? 'Edit Class' : 'Add New Class'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="class-name">Class Name</Label>
+                <Input
+                  id="class-name"
+                  value={classForm.class_name}
+                  onChange={(e) => setClassForm({ ...classForm, class_name: e.target.value })}
+                  placeholder="e.g., Tiny Twirlers"
+                />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="class-day">Day of Week</Label>
+                  <Select value={classForm.day_of_week} onValueChange={(value) => setClassForm({ ...classForm, day_of_week: value })}>
+                    <SelectTrigger id="class-day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                        <SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="class-skill">Skill Level</Label>
+                  <Select value={classForm.skill_level} onValueChange={(value) => setClassForm({ ...classForm, skill_level: value })}>
+                    <SelectTrigger id="class-skill">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all_levels">All Levels</SelectItem>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="class-start">Start Time</Label>
+                  <Input
+                    id="class-start"
+                    value={classForm.start_time}
+                    onChange={(e) => setClassForm({ ...classForm, start_time: e.target.value })}
+                    placeholder="10:00 AM"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="class-end">End Time</Label>
+                  <Input
+                    id="class-end"
+                    value={classForm.end_time}
+                    onChange={(e) => setClassForm({ ...classForm, end_time: e.target.value })}
+                    placeholder="10:45 AM"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="class-age">Age Range</Label>
+                  <Input
+                    id="class-age"
+                    value={classForm.age_range}
+                    onChange={(e) => setClassForm({ ...classForm, age_range: e.target.value })}
+                    placeholder="e.g., 3-5 years"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="class-capacity">Capacity</Label>
+                  <Input
+                    id="class-capacity"
+                    type="number"
+                    min="1"
+                    value={classForm.max_students}
+                    onChange={(e) => setClassForm({ ...classForm, max_students: e.target.value })}
+                    placeholder="e.g., 12"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="class-active"
+                  type="checkbox"
+                  checked={classForm.is_active}
+                  onChange={(e) => setClassForm({ ...classForm, is_active: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="class-active">Class is active and open for enrollment</Label>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              {selectedClass && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm('Delete this class? This cannot be undone.')) {
+                      deleteClassMutation.mutate(selectedClass.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setShowClassDialog(false)}>Cancel</Button>
+              <Button onClick={handleSaveClass} className="bg-rose-600 hover:bg-rose-700">
+                {selectedClass ? 'Update Class' : 'Create Class'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Convert Registration to Enrollment Dialog */}
+        <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Convert to Enrollment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                This creates a family profile and dancer profile for <span className="font-medium">{convertingRegistration?.child_name}</span>, then enrolls them in the class you choose below.
+              </p>
+              <div>
+                <Label htmlFor="convert-class">Class</Label>
+                <Select value={convertClassId} onValueChange={setConvertClassId}>
+                  <SelectTrigger id="convert-class">
+                    <SelectValue placeholder="Choose a class..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classSchedules.filter((c) => c.is_active).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.class_name ? `${c.class_name} — ` : ''}{c.day_of_week}s {c.start_time}-{c.end_time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowConvertDialog(false)}>Cancel</Button>
+              <Button
+                className="bg-purple-600 hover:bg-purple-700"
+                disabled={!convertClassId}
+                onClick={() => convertRegistrationMutation.mutate({ registration: convertingRegistration, classScheduleId: convertClassId })}
+              >
+                <ListPlus className="w-4 h-4 mr-2" />
+                Convert
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Award Badge Dialog */}
+        <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Award a Badge to {badgeTargetDancer?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Badge</Label>
+                <Select value={selectedBadgeKey} onValueChange={setSelectedBadgeKey}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BADGE_CATALOG.map((b) => (
+                      <SelectItem key={b.key} value={b.key}>
+                        {b.icon} {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {BADGE_CATALOG.find((b) => b.key === selectedBadgeKey)?.description}
+                </p>
+              </div>
+              <div>
+                <Label>Note (optional)</Label>
+                <Textarea value={badgeNote} onChange={(e) => setBadgeNote(e.target.value)} rows={2} placeholder="A personal note about why they earned this" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBadgeDialog(false)}>Cancel</Button>
+              <Button className="bg-rose-600 hover:bg-rose-700" onClick={() => awardBadgeMutation.mutate()}>
+                Award Badge
               </Button>
             </DialogFooter>
           </DialogContent>

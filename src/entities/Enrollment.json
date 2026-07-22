@@ -1,0 +1,52 @@
+{
+  "name": "Enrollment",
+  "type": "object",
+  "properties": {
+    "dancer_id": {
+      "type": "string",
+      "description": "ID of the enrolled DancerProfile"
+    },
+    "dancer_name": {
+      "type": "string",
+      "description": "Dancer's name, denormalized for display"
+    },
+    "parent_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the parent/guardian, denormalized for notifications"
+    },
+    "class_schedule_id": {
+      "type": "string",
+      "description": "ID of the ClassSchedule this dancer is enrolled in"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "waitlisted",
+        "cancelled",
+        "completed"
+      ],
+      "default": "active",
+      "description": "Enrollment status"
+    },
+    "waitlist_position": {
+      "type": "number",
+      "description": "Position in the waitlist queue, only set when status is waitlisted"
+    },
+    "enrolled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the dancer was enrolled"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about this enrollment"
+    }
+  },
+  "required": [
+    "dancer_id",
+    "class_schedule_id",
+    "status"
+  ]
+}

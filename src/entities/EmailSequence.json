@@ -1,0 +1,47 @@
+{
+  "name": "EmailSequence",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Sequence name, e.g. 'Welcome Series'"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "new_enrollment",
+        "inactivity"
+      ],
+      "default": "new_enrollment",
+      "description": "new_enrollment fires per family from their first active enrollment date; inactivity fires for families with no current active enrollment, timed from their most recent enrollment"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this sequence is currently running"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "delay_days": {
+            "type": "number",
+            "description": "Days after the trigger date to send this step"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Ordered drip steps"
+    }
+  },
+  "required": [
+    "name",
+    "trigger"
+  ]
+}

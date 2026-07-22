@@ -38,7 +38,8 @@ export default function CalendarView() {
     start_date: '',
     end_date: '',
     event_type: 'other',
-    status: 'scheduled'
+    status: 'scheduled',
+    visible_to_members: true
   });
 
   const { data: events = [] } = useQuery({
@@ -82,7 +83,8 @@ export default function CalendarView() {
       start_date: '',
       end_date: '',
       event_type: 'other',
-      status: 'scheduled'
+      status: 'scheduled',
+      visible_to_members: true
     });
     setSelectedEvent(null);
     setSelectedDate(null);
@@ -120,6 +122,7 @@ export default function CalendarView() {
       end_date: event.end_date,
       event_type: event.event_type,
       status: event.status,
+      visible_to_members: event.visible_to_members !== false,
     });
     setShowEventDialog(true);
   };
@@ -430,6 +433,16 @@ export default function CalendarView() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="event-visible-to-members"
+              type="checkbox"
+              checked={eventForm.visible_to_members}
+              onChange={(e) => setEventForm({ ...eventForm, visible_to_members: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <Label htmlFor="event-visible-to-members">Show on member portal's Upcoming Events</Label>
           </div>
           <DialogFooter className="gap-2">
             {selectedEvent && (

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Home, Settings, Calendar, DollarSign, FileText, Users } from "lucide-react";
+import { Home, Settings, Calendar, DollarSign, FileText, Users, Heart, BookOpen } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -44,6 +44,32 @@ export default function Layout({ children, currentPageName }) {
                 <Home className="w-4 h-4" />
                 <span className="hidden md:inline">Home</span>
               </Link>
+
+              <Link
+                to={createPageUrl("Blog")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  currentPageName === "Blog"
+                    ? "bg-white/20 text-white"
+                    : "text-rose-100 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden md:inline">Blog</span>
+              </Link>
+
+              {user && !isAdmin && (
+                <Link
+                  to={createPageUrl("Family")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    currentPageName === "Family"
+                      ? "bg-white/20 text-white"
+                      : "text-rose-100 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Heart className="w-4 h-4" />
+                  <span className="hidden md:inline">My Family</span>
+                </Link>
+              )}
 
               {isAdmin && (
                 <Link

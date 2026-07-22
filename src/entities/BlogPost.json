@@ -1,0 +1,59 @@
+{
+  "name": "BlogPost",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Blog post title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full blog post content (HTML)"
+    },
+    "excerpt": {
+      "type": "string",
+      "description": "Short summary of the post"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_approval",
+        "published",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Publication status"
+    },
+    "author": {
+      "type": "string",
+      "description": "Author display name"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags/categories for the post"
+    },
+    "featured_image": {
+      "type": "string",
+      "description": "URL of the featured image"
+    },
+    "publish_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the post was/will be published"
+    },
+    "ai_generated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the post was drafted with AI assistance"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "status"
+  ]
+}

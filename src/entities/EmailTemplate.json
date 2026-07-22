@@ -1,0 +1,63 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Template name shown in the template gallery"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "class_update",
+        "event_invitation",
+        "term_announcement",
+        "custom"
+      ],
+      "default": "custom",
+      "description": "Template category"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Default subject line for campaigns started from this template"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "heading",
+              "paragraph",
+              "image",
+              "button",
+              "divider"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "alignment": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          }
+        }
+      },
+      "description": "Ordered content blocks"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}
