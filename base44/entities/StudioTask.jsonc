@@ -1,0 +1,104 @@
+{
+  "name": "StudioTask",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short task title"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this task involves and why it matters"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "setup",
+        "marketing",
+        "operations",
+        "finance",
+        "admin",
+        "growth",
+        "safety"
+      ],
+      "default": "setup",
+      "description": "Task category"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "completed",
+        "blocked"
+      ],
+      "default": "not_started",
+      "description": "Current progress status"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium",
+      "description": "Priority level"
+    },
+    "roadmap_phase": {
+      "type": "string",
+      "enum": [
+        "foundation",
+        "launch",
+        "grow",
+        "optimize"
+      ],
+      "default": "foundation",
+      "description": "Which phase of the studio journey this task belongs to"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When this task should be done by"
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Detailed step-by-step instructions in markdown"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the task was marked complete"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Freeform notes, learnings, or context"
+    }
+  },
+  "required": [
+    "title",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
