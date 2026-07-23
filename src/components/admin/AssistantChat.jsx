@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,6 +124,14 @@ Try it now! I'll analyze your data and share helpful insights. 📊`
   }
 ];
 
+const QUICK_SUGGESTIONS = [
+  { label: '🎯 What next?', prompt: "What should I focus on next for my studio?" },
+  { label: '📊 My progress', prompt: "Can you show me my progress and where I am in my roadmap?" },
+  { label: '📅 Plan my week', prompt: "Can you help me plan my week and add the most important tasks to my calendar?" },
+  { label: '✍️ Draft a blog', prompt: "Can you draft a welcome blog post introducing my studio to new families?" },
+  { label: '🎟️ Promo code', prompt: "Can you help me create a promo code to attract new families?" },
+];
+
 export default function AssistantChat({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -134,6 +142,18 @@ export default function AssistantChat({ isOpen, onClose }) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isTrainingMode, setIsTrainingMode] = useState(false);
+
+  const { data: taskStats } = useQuery({
+    queryKey: ['studioTaskStats'],
+    queryFn: async () => {
+      const tasks = await base44.entities.StudioTask.list();
+      return {
+        total: tasks.length,
+        completed: tasks.filter(t => t.status === 'completed').length,
+      };
+    },
+    enabled: isOpen,
+  });
   
   const messagesEndRef = useRef(null);
   const unsubscribeRef = useRef(null);
@@ -384,6 +404,21 @@ export default function AssistantChat({ isOpen, onClose }) {
     }
   };
 
+  const sendPresetMessage = async (presetText) => {
+    if (!conversationId || isLoading) return;
+    setIsLoading(true);
+    try {
+      const conversation = await base44.agents.getConversation(conversationId);
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: presetText
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setIsLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -438,9 +473,23 @@ export default function AssistantChat({ isOpen, onClose }) {
               </Button>
             </div>
           </div>
-          <p className="text-xs text-white/90 mt-1">
-            {isTrainingMode ? '🎓 Learning a new skill' : `Your AI business helper ${voiceEnabled ? '🔊' : ''}`}
-          </p>
+          {isTrainingMode ? (
+            <p className="text-xs text-white/90 mt-1">🎓 Learning a new skill</p>
+          ) : taskStats && taskStats.total > 0 ? (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-white/90 whitespace-nowrap">
+                🌱 {taskStats.completed} of {taskStats.total} done
+              </span>
+              <div className="flex-1 max-w-[120px] h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{ width: `${(taskStats.completed / taskStats.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-white/90 mt-1">Your AI business mentor {voiceEnabled ? '🔊' : ''}</p>
+          )}
         </CardHeader>
         
         <CardContent className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -480,6 +529,19 @@ export default function AssistantChat({ isOpen, onClose }) {
         </CardContent>
 
         <div className="p-4 border-t bg-white rounded-b-lg flex-shrink-0">
+          {!isTrainingMode && messages.length <= 1 && conversationId && !isLoading && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {QUICK_SUGGESTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendPresetMessage(s.prompt)}
+                  className="text-xs px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
             <Button
               onClick={startListening}
