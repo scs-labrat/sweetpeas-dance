@@ -727,12 +727,13 @@ Write an engaging, warm, and informative blog post specifically on this topic: "
 
 Take a fresh, unique angle — don't just list generic facts. Use a concrete story, a surprising insight, or a specific tip parents won't have heard before.${existingTitles.length ? `\n\nThese posts already exist, so write something genuinely different in title and content:\n${existingTitles.map(t => `- ${t}`).join('\n')}` : ''}
 
-Format the body in clean, well-structured Markdown for a professional blog layout:
-- Start with a 2-3 sentence intro paragraph that hooks the reader
-- Use H2 (##) subheadings to break the post into clear sections
-- Use short paragraphs (2-4 sentences) and bullet lists for tips/steps
-- Bold key terms where helpful
-- End with a warm closing paragraph and an optional call to action
+Format the body as clean, well-structured HTML for a professional blog layout:
+- Start with a 2-3 sentence intro paragraph in a <p> that hooks the reader
+- Use <h2> subheadings to break the post into clear sections
+- Use short <p> paragraphs (2-4 sentences) and <ul><li> bullet lists for tips/steps
+- Wrap emphasized terms in <strong>
+- End with a warm closing <p> and an optional call to action
+- Do NOT include a top-level <h1> (the title is rendered separately); do NOT wrap the whole response in <html> or <body>
 
 The blog post should:
 - Be 500-800 words
@@ -745,7 +746,7 @@ The blog post should:
 Format your response as JSON with this structure:
 {
   "title": "Blog post title",
-  "content": "Full blog post content in markdown format",
+  "content": "Full blog post content in HTML format",
   "excerpt": "Brief 2-3 sentence summary",
   "tags": ["tag1", "tag2", "tag3"]
 }`;
