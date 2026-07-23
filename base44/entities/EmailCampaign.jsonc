@@ -1,0 +1,116 @@
+{
+  "name": "EmailCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Internal campaign name"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "heading",
+              "paragraph",
+              "image",
+              "button",
+              "divider"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "alignment": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left"
+          }
+        }
+      },
+      "description": "Ordered content blocks"
+    },
+    "segment": {
+      "type": "string",
+      "enum": [
+        "all",
+        "class",
+        "skill",
+        "waitlist"
+      ],
+      "default": "all",
+      "description": "Audience segment"
+    },
+    "class_schedule_id": {
+      "type": "string",
+      "description": "Targeted class, when segment is 'class'"
+    },
+    "skill_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "description": "Targeted skill level, when segment is 'skill'"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent"
+      ],
+      "default": "draft",
+      "description": "Campaign status"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the campaign was sent"
+    },
+    "recipient_count": {
+      "type": "number",
+      "description": "Number of recipients the campaign was sent to"
+    }
+  },
+  "required": [
+    "name",
+    "subject"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

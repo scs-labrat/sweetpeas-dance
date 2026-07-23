@@ -1,0 +1,60 @@
+{
+  "name": "ResourceItem",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Resource title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the resource"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "practice_video",
+        "music_track",
+        "recital_guide",
+        "other"
+      ],
+      "default": "other",
+      "description": "Resource category"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the downloadable/viewable file"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Optional thumbnail image URL"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this resource is visible to members"
+    }
+  },
+  "required": [
+    "title",
+    "file_url"
+  ],
+  "rls": {
+    "read": {},
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

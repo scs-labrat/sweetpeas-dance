@@ -1,0 +1,75 @@
+{
+  "name": "Broadcast",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "broadcast",
+        "segmented",
+        "reminder",
+        "newsletter",
+        "campaign",
+        "sequence"
+      ],
+      "default": "broadcast",
+      "description": "What kind of outbound message this was"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms"
+      ],
+      "default": "email",
+      "description": "Delivery channel used"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject line (email) or short label"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message content that was sent"
+    },
+    "segment_label": {
+      "type": "string",
+      "description": "Human-readable description of who was targeted"
+    },
+    "recipient_count": {
+      "type": "number",
+      "description": "Number of recipients the message was sent to"
+    },
+    "sent_by": {
+      "type": "string",
+      "description": "Name/email of the admin who sent it"
+    }
+  },
+  "required": [
+    "type",
+    "channel",
+    "recipient_count"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

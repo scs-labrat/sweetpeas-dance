@@ -1,0 +1,74 @@
+{
+  "name": "SocialPost",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "instagram",
+        "facebook",
+        "tiktok"
+      ],
+      "description": "Which platform this post is planned for"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Post caption/copy"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "URL of the photo or video to post"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this post is planned to go out"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "posted"
+      ],
+      "default": "draft",
+      "description": "Content calendar status"
+    },
+    "post_url": {
+      "type": "string",
+      "description": "Live URL of the post once it's actually published on the platform"
+    },
+    "show_on_wall": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to feature this post on the member portal's Social Wall"
+    },
+    "posted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this post was marked as posted"
+    }
+  },
+  "required": [
+    "platform",
+    "caption"
+  ],
+  "rls": {
+    "read": {},
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

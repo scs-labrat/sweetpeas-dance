@@ -1,0 +1,69 @@
+{
+  "name": "EmailSequence",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Sequence name, e.g. 'Welcome Series'"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "new_enrollment",
+        "inactivity"
+      ],
+      "default": "new_enrollment",
+      "description": "When this sequence fires"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this sequence is currently running"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "delay_days": {
+            "type": "number",
+            "description": "Days after the trigger date to send this step"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Ordered drip steps"
+    }
+  },
+  "required": [
+    "name",
+    "trigger"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
