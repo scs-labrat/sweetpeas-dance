@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,7 +36,8 @@ import {
   Megaphone,
   BellRing,
   Share2,
-  TrendingUp
+  TrendingUp,
+  ImagePlus
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +89,7 @@ function Admin() {
   const [showBlogDialog, setShowBlogDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
+  const [uploadingBlogImage, setUploadingBlogImage] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [horoscope, setHoroscope] = useState('');
@@ -858,6 +859,20 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
     }
   };
 
+  const handleBlogImageUpload = async (file) => {
+    if (!file) return;
+    setUploadingBlogImage(true);
+    try {
+      const uploaded = await base44.integrations.Core.UploadFile({ file });
+      setBlogForm((prev) => ({ ...prev, featured_image: uploaded?.file_url || '' }));
+      toast.success('Image uploaded');
+    } catch (error) {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingBlogImage(false);
+    }
+  };
+
   const addTag = () => {
     if (tagInput.trim() && !blogForm.tags.includes(tagInput.trim())) {
       setBlogForm({ ...blogForm, tags: [...blogForm.tags, tagInput.trim()] });
@@ -949,55 +964,55 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="today" className="space-y-6">
-          <TabsList className="bg-white/80 backdrop-blur-sm border border-rose-200">
-            <TabsTrigger value="today" className="data-[state=active]:bg-rose-100">
+          <TabsList className="bg-white/80 backdrop-blur-sm border border-rose-200 w-full justify-start overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger value="today" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <CalendarCheck className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="registrations" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="registrations" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Users className="w-4 h-4 mr-2" />
               Registrations
             </TabsTrigger>
-            <TabsTrigger value="students" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="students" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <UserPlus className="w-4 h-4 mr-2" />
               Students & Parents
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="messages" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Inbox className="w-4 h-4 mr-2" />
               Messages
               {unreadConversationCount > 0 && (
                 <Badge className="ml-2 bg-red-500 text-white">{unreadConversationCount}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="campaigns" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Mail className="w-4 h-4 mr-2" />
               Campaigns
             </TabsTrigger>
-            <TabsTrigger value="social" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="social" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Share2 className="w-4 h-4 mr-2" />
               Social
             </TabsTrigger>
-            <TabsTrigger value="community" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="community" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Users className="w-4 h-4 mr-2" />
               Community
             </TabsTrigger>
-            <TabsTrigger value="growth" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="growth" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <TrendingUp className="w-4 h-4 mr-2" />
               Growth
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Calendar className="w-4 h-4 mr-2" />
               Calendar
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <Calendar className="w-4 h-4 mr-2" />
               Schedule
             </TabsTrigger>
-            <TabsTrigger value="pricing" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="pricing" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <DollarSign className="w-4 h-4 mr-2" />
               Pricing
             </TabsTrigger>
-            <TabsTrigger value="content" className="data-[state=active]:bg-rose-100">
+            <TabsTrigger value="content" className="data-[state=active]:bg-rose-100 flex-shrink-0">
               <FileText className="w-4 h-4 mr-2" />
               Content & Blogs
             </TabsTrigger>
@@ -2064,13 +2079,41 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
                 </div>
               </div>
               <div>
-                <Label htmlFor="blog-image">Featured Image URL</Label>
-                <Input
-                  id="blog-image"
-                  value={blogForm.featured_image}
-                  onChange={(e) => setBlogForm({ ...blogForm, featured_image: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label htmlFor="blog-image">Featured Image</Label>
+                {blogForm.featured_image ? (
+                  <div className="relative rounded-lg overflow-hidden border border-rose-200">
+                    <img src={blogForm.featured_image} alt="Featured preview" className="w-full h-48 object-cover" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => setBlogForm((prev) => ({ ...prev, featured_image: '' }))}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-rose-200 rounded-lg p-6 cursor-pointer hover:bg-rose-50/50 transition-colors">
+                    {uploadingBlogImage ? (
+                      <>
+                        <Loader2 className="w-6 h-6 text-rose-500 animate-spin" />
+                        <span className="text-sm text-gray-500">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="w-6 h-6 text-rose-400" />
+                        <span className="text-sm text-gray-500">Click to upload a featured image</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleBlogImageUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                )}
               </div>
               <div>
                 <Label>Tags</Label>
