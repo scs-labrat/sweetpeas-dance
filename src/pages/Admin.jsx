@@ -704,18 +704,31 @@ Format: Just the horoscope text, no title or label.`;
   const handleGenerateBlog = async () => {
     setIsGenerating(true);
     try {
+      const topics = [
+        'Benefits of dance for preschoolers',
+        'How to prepare your child for their first dance class',
+        'The importance of creative movement in early childhood',
+        'Building confidence through dance',
+        'Fun dance activities to do at home with your preschooler',
+        'Why preschoolers love creative dance (and the science behind it)',
+        'Helping shy little ones feel brave in dance class',
+        'What to expect in your child\'s first term of dance',
+        'Simple ways dance builds gross motor skills ages 3-5',
+        'How dance supports emotional regulation in young children',
+        'Celebrating small wins: milestones in preschool dance',
+        'Dance vs. other preschool activities: what makes it special',
+      ];
+      const topic = topics[Math.floor(Math.random() * topics.length)];
+      const existingTitles = blogPosts.map(b => b.title).filter(Boolean);
       const prompt = `You are a professional content writer for Sweetpeas Dance Studio, a creative dance class for preschoolers ages 3-5.
 
-Write an engaging, warm, and informative blog post about one of these topics (choose the most relevant):
-- Benefits of dance for preschoolers
-- How to prepare your child for their first dance class
-- The importance of creative movement in early childhood
-- Building confidence through dance
-- Fun dance activities to do at home with your preschooler
+Write an engaging, warm, and informative blog post specifically on this topic: "${topic}"
+
+Take a fresh, unique angle — don't just list generic facts. Use a concrete story, a surprising insight, or a specific tip parents won't have heard before.${existingTitles.length ? `\n\nThese posts already exist, so write something genuinely different in title and content:\n${existingTitles.map(t => `- ${t}`).join('\n')}` : ''}
 
 The blog post should:
 - Be 500-800 words
-- Have a catchy, friendly title
+- Have a catchy, friendly title (different from the topic heading above)
 - Include practical tips or advice for parents
 - Be warm and encouraging in tone
 - Include a brief excerpt/summary (2-3 sentences)
