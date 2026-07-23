@@ -1,0 +1,54 @@
+{
+  "name": "ParentProfile",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the authenticated parent user this profile belongs to"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Parent/guardian full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "address": {
+      "type": "string",
+      "description": "Home address"
+    },
+    "emergency_contact": {
+      "type": "string",
+      "description": "Emergency contact name and phone"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Any notes about this family"
+    },
+    "unsubscribed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this family has opted out of studio emails and campaigns"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "This family's unique code for referring new families"
+    }
+  },
+  "required": [
+    "user_email",
+    "full_name"
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

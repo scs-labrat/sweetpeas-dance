@@ -175,6 +175,7 @@ export default function Family() {
       setDancerForm({ name: "", birthdate: "", skill_level: "beginner", notes: "" });
       toast.success("Dancer added");
     },
+    onError: (err) => toast.error("Could not add dancer: " + (err?.message || "Unknown error")),
   });
 
   const enrollMutation = useMutation({

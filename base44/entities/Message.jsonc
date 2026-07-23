@@ -1,0 +1,45 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID of the parent Conversation this message belongs to"
+    },
+    "sender_role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "parent"
+      ],
+      "description": "Who sent this message"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Display name of the sender"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "sender_role",
+    "body"
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
