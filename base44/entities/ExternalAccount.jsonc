@@ -1,0 +1,111 @@
+{
+  "name": "ExternalAccount",
+  "type": "object",
+  "properties": {
+    "service_name": {
+      "type": "string",
+      "description": "Name of the service or platform, e.g. 'Instagram Business', 'Google Workspace'"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "social",
+        "email",
+        "payment",
+        "membership",
+        "tool",
+        "api_key",
+        "other"
+      ],
+      "default": "social",
+      "description": "What kind of account this is"
+    },
+    "url": {
+      "type": "string",
+      "description": "Link to sign up or manage this account"
+    },
+    "username": {
+      "type": "string",
+      "description": "Handle, email, or username used to log in"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_created",
+        "in_progress",
+        "active",
+        "needs_attention"
+      ],
+      "default": "not_created",
+      "description": "Setup status"
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Why Fiona needs this account for her studio"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium",
+      "description": "How soon this should be set up"
+    },
+    "roadmap_phase": {
+      "type": "string",
+      "enum": [
+        "foundation",
+        "launch",
+        "grow",
+        "optimize"
+      ],
+      "default": "foundation",
+      "description": "Which phase of the journey this account is needed in"
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Step-by-step instructions for setting up the account"
+    },
+    "has_credentials": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an API key, secret, or special credential is needed"
+    },
+    "credential_storage": {
+      "type": "string",
+      "description": "Where credentials are safely stored, e.g. 'Password manager', 'Saved in browser'"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Freeform notes about this account"
+    }
+  },
+  "required": [
+    "service_name",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
