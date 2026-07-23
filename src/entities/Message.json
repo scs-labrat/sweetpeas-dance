@@ -27,5 +27,19 @@
     "conversation_id",
     "sender_role",
     "body"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

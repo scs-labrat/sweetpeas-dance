@@ -45,5 +45,15 @@
   "required": [
     "parent_email",
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

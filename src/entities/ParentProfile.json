@@ -40,5 +40,15 @@
   "required": [
     "user_email",
     "full_name"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

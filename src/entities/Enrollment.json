@@ -48,5 +48,15 @@
     "dancer_id",
     "class_schedule_id",
     "status"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

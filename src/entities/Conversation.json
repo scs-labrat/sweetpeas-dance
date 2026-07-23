@@ -46,5 +46,15 @@
   },
   "required": [
     "parent_email"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "write": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

@@ -164,6 +164,7 @@ export default function Family() {
       setShowProfileDialog(false);
       toast.success("Family details saved");
     },
+    onError: (err) => toast.error("Could not save family details: " + (err?.message || "Unknown error")),
   });
 
   const createDancerMutation = useMutation({
