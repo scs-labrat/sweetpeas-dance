@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -243,7 +242,8 @@ Registration Date: ${new Date().toLocaleString()}
       friday: 'Friday',
       sunday: 'Sunday'
     };
-    return `${dayMap[schedule.day_of_week.toLowerCase()]} ${schedule.start_time} - ${schedule.end_time}`;
+    const dayKey = schedule.day_of_week ? schedule.day_of_week.toLowerCase() : '';
+    return `${dayMap[dayKey] || schedule.day_of_week || ''} ${schedule.start_time || ''} - ${schedule.end_time || ''}`;
   };
 
   return (
@@ -253,6 +253,16 @@ Registration Date: ${new Date().toLocaleString()}
         style={{ opacity, scale }}
         className="relative min-h-screen flex items-center justify-center overflow-hidden px-4"
       >
+        {/* Fairy background image at 25% opacity */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <img
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68f79a8f5fc3ed83105d522e/e69a8acbf_fairy.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-contain opacity-25"
+          />
+        </div>
+
         {/* Decorative floating flowers */}
         <FloatingFlower delay={0} left="left-[10%]" top="top-[15%]" />
         <FloatingFlower delay={1} left="right-[15%]" top="top-[25%]" size="w-6 h-6" />
@@ -742,7 +752,7 @@ Registration Date: ${new Date().toLocaleString()}
                       <div>
                         <Label htmlFor="preferred-class-time">Preferred Class Time *</Label>
                         <Select
-                          value={formData.preferred_class_time}
+                          value={formData.preferred_class_time || undefined}
                           onValueChange={(value) => handleInputChange('preferred_class_time', value)}
                         >
                           <SelectTrigger id="preferred-class-time" className="border-rose-200 focus:border-rose-400">

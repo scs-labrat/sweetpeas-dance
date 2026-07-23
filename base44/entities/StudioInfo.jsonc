@@ -1,0 +1,51 @@
+{
+  "name": "StudioInfo",
+  "type": "object",
+  "properties": {
+    "studio_name": {
+      "type": "string",
+      "description": "Name of the studio"
+    },
+    "address_line1": {
+      "type": "string",
+      "description": "Street address"
+    },
+    "address_line2": {
+      "type": "string",
+      "description": "City, State, ZIP"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email"
+    },
+    "description": {
+      "type": "string",
+      "description": "Studio description"
+    },
+    "hours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "hours": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Studio hours by day"
+    }
+  },
+  "required": [
+    "studio_name",
+    "phone",
+    "email"
+  ]
+}
