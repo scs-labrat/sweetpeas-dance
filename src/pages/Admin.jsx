@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import BlogContent from "@/components/BlogContent";
 import {
   Users,
   Calendar,
@@ -725,6 +726,13 @@ Format: Just the horoscope text, no title or label.`;
 Write an engaging, warm, and informative blog post specifically on this topic: "${topic}"
 
 Take a fresh, unique angle — don't just list generic facts. Use a concrete story, a surprising insight, or a specific tip parents won't have heard before.${existingTitles.length ? `\n\nThese posts already exist, so write something genuinely different in title and content:\n${existingTitles.map(t => `- ${t}`).join('\n')}` : ''}
+
+Format the body in clean, well-structured Markdown for a professional blog layout:
+- Start with a 2-3 sentence intro paragraph that hooks the reader
+- Use H2 (##) subheadings to break the post into clear sections
+- Use short paragraphs (2-4 sentences) and bullet lists for tips/steps
+- Bold key terms where helpful
+- End with a warm closing paragraph and an optional call to action
 
 The blog post should:
 - Be 500-800 words
@@ -2037,7 +2045,7 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
               {selectedBlog?.excerpt && (
                 <p className="text-lg text-gray-600 italic">{selectedBlog.excerpt}</p>
               )}
-              <div dangerouslySetInnerHTML={{ __html: selectedBlog?.content || '' }} />
+              <BlogContent content={selectedBlog?.content} />
               {selectedBlog?.tags && selectedBlog.tags.length > 0 && (
                 <div className="flex gap-2 mt-4">
                   {selectedBlog.tags.map(tag => (

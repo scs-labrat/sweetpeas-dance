@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ShareButtons from '@/components/ShareButtons';
+import BlogContent from '@/components/BlogContent';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 
 export default function Blog() {
@@ -55,7 +56,7 @@ export default function Blog() {
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-rose-800 mb-4">{activePost.title}</h1>
-              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: activePost.content || '' }} />
+              <BlogContent content={activePost.content} />
               {activePost.tags && activePost.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-6">
                   {activePost.tags.map((tag) => (
