@@ -253,7 +253,7 @@ export default function AssistantChat({ isOpen, onClose }) {
 
       const initialMessage = trainingSkill 
         ? trainingSkill.prompt
-        : 'Hi! Please introduce yourself and give me a brief tour of what you can help me with.';
+        : 'Hi! Before anything else, please read my current studio data — my StudioTask roadmap, ExternalAccount checklist, ClassSchedule, Pricing, StudioInfo, BlogPost, SocialPost, PromoCode, Registration, and CalendarEvent records — then introduce yourself and give me a quick summary of where my studio is at and what you think I should focus on next.';
 
       await base44.agents.addMessage(conversation, {
         role: 'user',

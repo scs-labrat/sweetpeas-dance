@@ -149,7 +149,7 @@ export default function CalendarView() {
   const getEventsForTimeSlot = (day, hour) => {
     return events.filter(event => {
       const eventStart = parseISO(event.start_date);
-      const eventEnd = parseISO(event.end_date);
+      const eventEnd = event.end_date ? parseISO(event.end_date) : eventStart;
       const slotStart = new Date(day);
       slotStart.setHours(hour, 0, 0, 0);
       const slotEnd = new Date(day);
