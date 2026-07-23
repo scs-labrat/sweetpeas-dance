@@ -1,12 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck, Star, Calendar, Clock, Sparkles, Loader2, ListPlus, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { CalendarCheck, Star, Calendar, Clock, Sparkles, Loader2, ListPlus, CheckCircle, FileText, Save, MessageSquare } from "lucide-react";
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 
 const EVENT_COLORS = {
   class: "bg-blue-100 border-blue-300 text-blue-800",
@@ -17,6 +21,16 @@ const EVENT_COLORS = {
 };
 
 const PRIORITY_RANK = (p) => ({ high: 0, medium: 1, low: 2 }[p] ?? 3);
+
+const buildTaskPrompt = (task) => `I'm working on a studio task and need your help to complete it.
+
+**Task:** ${task.title}
+**Category:** ${task.category || "—"} · Priority: ${task.priority || "—"} · Roadmap phase: ${task.roadmap_phase || "—"}
+**What it involves:** ${task.description || "(no description)"}
+${task.instructions ? `**Step-by-step instructions:**\n${task.instructions}` : ""}
+${task.notes ? `**What I've recorded so far:**\n${task.notes}` : ""}
+
+Please walk me through completing this task step by step. Where I need to create accounts, draft content, or record details, tell me exactly what to do and offer to do it for me. Update the task status and notes as we make progress.`;
 
 export default function OverviewTab({
   todayEvents,
@@ -30,8 +44,11 @@ export default function OverviewTab({
   unreadConversationCount,
   activeClassSchedules,
   enrollments,
+  onAskAI,
 }) {
   const queryClient = useQueryClient();
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [notesDraft, setNotesDraft] = useState("");
 
   const { data: studioTasks = [] } = useQuery({
     queryKey: ["studioTasks"],
@@ -49,6 +66,19 @@ export default function OverviewTab({
       toast.success("Task marked complete — nice work! 🎉");
     },
   });
+
+  const updateNotesMutation = useMutation({
+    mutationFn: ({ id, notes }) => base44.entities.StudioTask.update(id, { notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["studioTasks"] });
+      toast.success("Notes saved");
+    },
+  });
+
+  const openTask = (task) => {
+    setSelectedTask(task);
+    setNotesDraft(task.notes || "");
+  };
 
   const openTasks = (studioTasks || []).filter((t) => t.status !== "completed");
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -205,13 +235,17 @@ export default function OverviewTab({
             <ListPlus className="w-5 h-5" />
             This Week's To-Dos
           </CardTitle>
-          <CardDescription>Your open roadmap tasks, prioritised for this week</CardDescription>
+          <CardDescription>Click any task for instructions, notes, and AI help</CardDescription>
         </CardHeader>
         <CardContent>
           {thisWeekTasks.length > 0 ? (
             <div className="space-y-2">
               {thisWeekTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border border-rose-100 bg-rose-50/50">
+                <div
+                  key={task.id}
+                  onClick={() => openTask(task)}
+                  className="flex items-center justify-between p-3 rounded-lg border border-rose-100 bg-rose-50/50 cursor-pointer hover:bg-rose-100/60 transition-colors"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">{task.title}</p>
                     <div className="flex flex-wrap gap-2 mt-1">
@@ -220,18 +254,22 @@ export default function OverviewTab({
                       </Badge>
                       <Badge variant="outline" className="capitalize">{task.priority} priority</Badge>
                       {task.due_date && <Badge variant="outline">Due {format(parseISO(task.due_date), "EEE d MMM")}</Badge>}
+                      {task.notes && <Badge variant="outline" className="text-purple-700">📝 Has notes</Badge>}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => completeTaskMutation.mutate(task.id)}
-                    disabled={completeTaskMutation.isPending}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Done
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-rose-500 hidden sm:inline">View →</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); completeTaskMutation.mutate(task.id); }}
+                      disabled={completeTaskMutation.isPending}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Done
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -244,6 +282,98 @@ export default function OverviewTab({
           )}
         </CardContent>
       </Card>
+
+      {/* Task Detail Dialog */}
+      <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-rose-800">{selectedTask?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedTask && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Badge className={selectedTask.status === "in_progress" ? "bg-blue-100 text-blue-700" : selectedTask.status === "completed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
+                  {selectedTask.status === "in_progress" ? "In Progress" : selectedTask.status === "completed" ? "Completed" : "Not Started"}
+                </Badge>
+                <Badge variant="outline" className="capitalize">{selectedTask.priority} priority</Badge>
+                {selectedTask.category && <Badge variant="outline" className="capitalize">{selectedTask.category}</Badge>}
+                {selectedTask.roadmap_phase && <Badge variant="outline" className="capitalize">{selectedTask.roadmap_phase} phase</Badge>}
+                {selectedTask.due_date && <Badge variant="outline">Due {format(parseISO(selectedTask.due_date), "EEE d MMM")}</Badge>}
+              </div>
+
+              {selectedTask.description && (
+                <p className="text-sm text-gray-700">{selectedTask.description}</p>
+              )}
+
+              {selectedTask.instructions && (
+                <div>
+                  <Label className="flex items-center gap-2 mb-1"><FileText className="w-4 h-4" /> How to do this</Label>
+                  <div className="prose prose-sm max-w-none bg-rose-50/50 rounded-lg p-3 border border-rose-100">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="ml-4 mb-2 list-disc">{children}</ul>,
+                        ol: ({ children }) => <ol className="ml-4 mb-2 list-decimal">{children}</ol>,
+                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                      }}
+                    >
+                      {selectedTask.instructions}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label className="mb-1 block">Record details & notes</Label>
+                <Textarea
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  rows={5}
+                  placeholder="Jot down logins, links, decisions, or anything you created while doing this task..."
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => updateNotesMutation.mutate({ id: selectedTask.id, notes: notesDraft })}
+                  disabled={updateNotesMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  Save notes
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                {selectedTask.status !== "completed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-green-600 hover:text-green-700"
+                    onClick={() => {
+                      completeTaskMutation.mutate(selectedTask.id);
+                      setSelectedTask(null);
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Mark complete
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  onClick={() => {
+                    onAskAI?.(buildTaskPrompt(selectedTask));
+                    setSelectedTask(null);
+                  }}
+                >
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  Ask AI to help with this task
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

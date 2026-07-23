@@ -79,6 +79,7 @@ function Admin() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [assistantSeedPrompt, setAssistantSeedPrompt] = useState('');
   const [showBlogDialog, setShowBlogDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
@@ -1024,6 +1025,7 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
               unreadConversationCount={unreadConversationCount}
               activeClassSchedules={activeClassSchedules}
               enrollments={enrollments}
+              onAskAI={(prompt) => { setAssistantSeedPrompt(prompt); setShowAssistant(true); }}
             />
           </TabsContent>
 
@@ -2311,7 +2313,12 @@ Keep it conversational, warm, and under 400 words. Format in markdown.`;
         </Button>
 
         {/* AI Assistant Chat */}
-        <AssistantChat isOpen={showAssistant} onClose={() => setShowAssistant(false)} />
+        <AssistantChat
+          isOpen={showAssistant}
+          onClose={() => setShowAssistant(false)}
+          seedPrompt={assistantSeedPrompt}
+          onSeedConsumed={() => setAssistantSeedPrompt('')}
+        />
       </div>
     </div>
   );
