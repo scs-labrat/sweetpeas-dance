@@ -133,17 +133,6 @@ const QUICK_SUGGESTIONS = [
 ];
 
 export default function AssistantChat({ isOpen, onClose, seedPrompt, onSeedConsumed }) {
-  const seededRef = useRef('');
-
-  // When a pre-seeded prompt arrives (e.g. from a to-do's "Ask AI" button),
-  // send it into the current conversation once it's ready.
-  useEffect(() => {
-    if (seedPrompt && seedPrompt !== seededRef.current && conversationId && !isInitializing && !isLoading) {
-      seededRef.current = seedPrompt;
-      sendPresetMessage(seedPrompt);
-      onSeedConsumed?.();
-    }
-  }, [seedPrompt, conversationId, isInitializing, isLoading]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -429,6 +418,18 @@ export default function AssistantChat({ isOpen, onClose, seedPrompt, onSeedConsu
       setIsLoading(false);
     }
   };
+
+  const seededRef = useRef('');
+
+  // When a pre-seeded prompt arrives (e.g. from a to-do's "Ask AI" button),
+  // send it into the current conversation once it's ready.
+  useEffect(() => {
+    if (seedPrompt && seedPrompt !== seededRef.current && conversationId && !isInitializing && !isLoading) {
+      seededRef.current = seedPrompt;
+      sendPresetMessage(seedPrompt);
+      onSeedConsumed?.();
+    }
+  }, [seedPrompt, conversationId, isInitializing, isLoading]);
 
   if (!isOpen) return null;
 
