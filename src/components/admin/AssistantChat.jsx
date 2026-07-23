@@ -289,7 +289,7 @@ export default function AssistantChat({ isOpen, onClose }) {
   };
 
   const speakText = async (text) => {
-    if (!voiceEnabled || !text) return;
+    if (!text) return;
     
     stopSpeaking();
     
